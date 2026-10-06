@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1F386E">
+<title>Gerador do Plano de Prevenção ao Assédio — Grupo Performance</title>
+<link rel="icon" href="{{LOGO}}">
+<style>
+:root{
+  --azul:#1F386E;
+  --ciano:#04CCFF;
+  --verde:#7FCC0E;
+  --roxo:#9A66CB;
+  --indigo:#6766CC;
+  --mut:#64748b;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto,Arial,sans-serif}
+
+/* ============ BARRA SUPERIOR (identidade do papel timbrado) ============ */
+.toolbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 20px;background:linear-gradient(100deg,var(--azul),#2b4a86 55%,var(--indigo));color:#fff;box-shadow:0 2px 10px rgba(31,56,110,.25)}
+.toolbar::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--ciano) 0 33%,var(--verde) 33% 66%,var(--roxo) 66%)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;max-width:58vw}
+.brand img{height:40px;background:#fff;border-radius:8px;padding:3px;box-shadow:0 1px 6px rgba(0,0,0,.25);flex:0 0 auto}
+.brand .tt{min-width:0}
+.brand strong{display:block;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .hint{display:block;font-size:12px;color:#dbeafe;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1500px){.brand .hint{display:none}}
+.toolbar .spacer{flex:1}
+.toolbar .status{font-size:12px;color:#dbeafe;max-width:340px;text-align:right}
+.btn{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid #ffffff66;border-radius:6px;padding:9px 14px;white-space:nowrap;cursor:pointer;background:#fff;color:var(--azul)}
+.btn:hover{filter:brightness(.94)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.btn:disabled{opacity:.72;cursor:progress}
+.btn.ghost{background:transparent;color:#fff}
+.btn.big{font-size:14.5px;padding:12px 22px;border-radius:8px}
+
+/* ============ ÁREA DO FORMULÁRIO ============ */
+.wrap{max-width:980px;margin:0 auto;padding:22px 16px 10px}
+.card{background:#fff;border:1px solid #e2e9f4;border-radius:14px;box-shadow:0 3px 14px rgba(31,56,110,.08);padding:20px 22px;margin-bottom:18px}
+.card>h2{display:flex;align-items:center;gap:12px;font-size:16.5px;margin:0;color:var(--azul)}
+.stepnum{flex:0 0 30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--azul),var(--indigo));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.card .sub{font-size:13px;color:var(--mut);margin:6px 0 16px 42px;line-height:1.5}
+@media(max-width:560px){.card .sub{margin-left:0}}
+
+.drop{border:2px dashed #b7c6de;border-radius:12px;background:#f7fafd;padding:22px;display:flex;gap:16px;align-items:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.drag{border-color:var(--ciano);background:#f2fbff}
+.drop .dic{flex:0 0 48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--azul),var(--indigo));color:#fff}
+.drop .dic svg{width:24px;height:24px}
+.drop b{display:block;font-size:14.5px}
+.drop small{display:block;font-size:12.5px;color:var(--mut);margin-top:3px;line-height:1.45}
+.drop .manual{margin-top:8px}
+.linklike{background:none;border:none;padding:0;color:var(--indigo);font:600 12.5px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:underline;cursor:pointer}
+.linklike:hover{color:var(--azul)}
+
+.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 12px;margin-top:16px}
+@media(max-width:860px){.fields{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.fields{grid-template-columns:1fr}}
+.fld span{display:block;font-size:11.5px;font-weight:600;color:#44536e;margin-bottom:4px;letter-spacing:.02em}
+.fld input,.fld textarea{width:100%;border:1.5px solid #c9d4e6;border-radius:7px;padding:8px 10px;font:inherit;font-size:13.5px;color:var(--azul);background:#fff}
+.fld input:focus,.fld textarea:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(4,204,255,.18)}
+.fld input.err{border-color:#e05252;background:#fff7f7}
+.fld.wide{grid-column:1/-1}
+.fields-note{font-size:12px;color:var(--mut);margin-top:10px}
+
+/* Canais de denúncia */
+#chanGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:760px){#chanGrid{grid-template-columns:1fr}}
+.chan{position:relative;background:#fff;border:1.5px solid #d3ddea;border-radius:11px;padding:13px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.chan:hover{border-color:#b7c6de}
+.chan.on{border-color:var(--azul);background:#f4f8ff;box-shadow:0 3px 12px rgba(31,56,110,.10)}
+.chan:focus-visible{outline:3px solid var(--ciano);outline-offset:2px}
+.chan-head{display:flex;gap:10px;align-items:flex-start}
+.chk{flex:0 0 20px;height:20px;border-radius:6px;border:2px solid #b7c6de;background:#fff;margin-top:1px;position:relative;transition:background .15s,border-color .15s}
+.chan.on .chk{background:linear-gradient(135deg,var(--azul),var(--indigo));border-color:var(--azul)}
+.chan.on .chk::after{content:"";position:absolute;left:5.5px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(42deg)}
+.chan-ic{flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#eef3fb;color:var(--azul)}
+.chan.on .chan-ic{background:linear-gradient(135deg,var(--ciano),var(--indigo));color:#fff}
+.chan-ic svg{width:19px;height:19px}
+.chan-tx{min-width:0}
+.chan-tx b{display:block;font-size:14px;color:var(--azul)}
+.chan-tx small{display:block;font-size:12px;color:var(--mut);line-height:1.45;margin-top:2px}
+.chan-fields{margin-top:11px;padding-top:11px;border-top:1px dashed #cfd9e8;display:grid;gap:8px}
+.chan--outro{border-style:dashed;cursor:default}
+.chan--outro .chan-head{cursor:pointer}
+.alerts{display:none;margin:14px 0 0;padding:12px 14px;border-radius:10px;background:#fff4f4;border:1.5px solid #f3c1c1;color:#8f1f1f;font-size:13px}
+.alerts.show{display:block}
+.alerts ul{margin:0;padding-left:18px}
+.alerts li{margin:3px 0}
+.okline{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:#2c6b2f;background:#f2fbf2;border:1.5px solid #bfe6bf;border-radius:10px;padding:10px 13px}
+.okline[hidden]{display:none}
+.genrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.genrow .grow{flex:1}
+
+/* Rodapé do app (apenas unidade Itatiaiuçu) */
+.appfoot{text-align:center;font-size:12px;color:#5a6a83;padding:8px 16px 26px;line-height:1.6}
+.appfoot b{color:var(--azul)}
+
+/* ============ MODAL DE PRÉ-VISUALIZAÇÃO ============ */
+#docModal{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.58);display:flex;flex-direction:column}
+#docModal[hidden]{display:none}
+.modal-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(100deg,var(--azul),#2b4a86 55%,var(--indigo));color:#fff;flex-wrap:wrap}
+.modal-bar::after{content:none}
+.modal-bar strong{font-size:14px}
+.modal-bar .zinfo{font-size:12px;color:#dbeafe;min-width:44px;text-align:center}
+.zbtn{width:32px;height:32px;border-radius:7px;border:1px solid #ffffff66;background:transparent;color:#fff;font-size:15px;cursor:pointer;line-height:1}
+.zbtn:hover{background:#ffffff22}
+#docPreview{flex:1;overflow:auto;padding:18px;zoom:var(--z,1)}
+#docPreview #printRoot{display:block}
+
+/* ============ FOLHA A4 / DOCUMENTO (herda o design do timbrado) ============ */
+#printRoot{display:none}
+body.previewing #printRoot{display:block}
+.sheet{width:210mm;height:297mm;margin:0 auto;background:#fff;box-shadow:0 3px 14px #0003;display:flex;flex-direction:column;padding:13mm 15mm 11mm;overflow:hidden;position:relative}
+body.previewing #printRoot{background:#dfe6f0;padding:6mm 0}
+body.previewing .sheet{margin-bottom:10mm}
+#docPreview .sheet{box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#printRoot.building{display:block;position:fixed;left:-5000px;top:0;visibility:hidden;margin:0}
+
+.letterhead{display:flex;align-items:center;justify-content:space-between;gap:12mm;min-height:38mm;padding-bottom:7mm;position:relative}
+.letterhead::after{content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ciano) 0 33%,var(--verde) 33% 66%,var(--roxo) 66%)}
+.letterhead img{width:46mm;height:31mm;object-fit:contain;object-position:left center}
+.letterhead .identity{text-align:right}
+.letterhead .identity b{display:block;font-size:10pt;letter-spacing:.12em;text-transform:uppercase;line-height:1.35}
+.letterhead .identity span{display:block;font-size:8pt;letter-spacing:.08em;color:var(--mut);margin-top:2mm}
+
+.docHead{display:flex;align-items:center;gap:6mm;border-bottom:1.5px solid var(--azul);padding-bottom:2.5mm;position:relative;flex:0 0 auto}
+.docHead::after{content:"";position:absolute;bottom:-1.5px;left:0;width:37%;height:1.5px;background:linear-gradient(90deg,var(--ciano),var(--verde),var(--roxo))}
+.docHead img{height:13mm;width:auto;object-fit:contain}
+.dh-t{flex:1;min-width:0}
+.dh-t b{display:block;font-size:8.6pt;letter-spacing:.05em;line-height:1.3;text-transform:uppercase;color:var(--azul)}
+.dh-t span{display:block;font-size:7.6pt;color:var(--mut);margin-top:.8mm}
+.dh-r{text-align:right;font-size:7.6pt;color:var(--mut);white-space:nowrap}
+.dh-r b{display:block;font-size:9pt;color:var(--azul)}
+
+.dbody{flex:1;min-height:0;overflow:hidden;padding-top:6mm}
+.dbody.cover-body{display:flex;flex-direction:column}
+.dbody .blk{display:block}
+
+/* Capa */
+.cover-hero{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:6mm;padding:2mm 0 8mm}
+.cover-kick{font-size:9pt;letter-spacing:.34em;font-weight:700;color:var(--mut);text-transform:uppercase}
+.cover-title{font-size:23pt;line-height:1.2;font-weight:800;color:var(--azul);letter-spacing:.01em;max-width:160mm}
+.cover-rule{height:2.5px;width:58mm;background:linear-gradient(90deg,var(--ciano),var(--verde),var(--roxo))}
+.cover-sub{font-size:10pt;color:#44536e;max-width:140mm;line-height:1.55;font-style:italic}
+.cover-card{border:1.5px solid #d3ddea;border-radius:3mm;padding:6mm 7mm;background:linear-gradient(180deg,#f6f9ff,#fff);max-width:150mm}
+.cover-card .cl{font-size:7.6pt;letter-spacing:.14em;font-weight:700;color:var(--mut);text-transform:uppercase;margin-bottom:1.5mm}
+.cover-card .cv{font-size:13pt;font-weight:800;color:var(--azul);line-height:1.3}
+.cover-card .cm{font-size:9pt;color:#44536e;margin-top:1.5mm}
+
+/* Tipografia do conteúdo */
+.sec-t{font-size:12.5pt;letter-spacing:.04em;text-transform:uppercase;color:var(--azul);margin:0 0 4mm;line-height:1.3}
+.blk>.sec-t{position:relative;border-bottom:1.5px solid #d3ddea;padding-bottom:2mm;width:100%}
+.blk>.sec-t::after{content:"";position:absolute;left:0;bottom:-1.5px;width:37%;height:1.5px;background:linear-gradient(90deg,var(--ciano),var(--verde),var(--roxo))}
+.dp{font-size:9.6pt;line-height:1.55;text-align:justify;margin:0 0 2.8mm;color:#22314a}
+.dp b{color:var(--azul)}
+.dh3{font-size:10.2pt;margin:1mm 0 2mm;color:var(--azul)}
+.dl{margin:0 0 3mm;padding:0;list-style:none}
+.dl li{position:relative;padding-left:5.5mm;margin-bottom:1.6mm;font-size:9.6pt;line-height:1.5;text-align:justify;color:#22314a}
+.dl li::before{content:"";position:absolute;left:1mm;top:.42em;width:2mm;height:2mm;border-radius:.6mm;background:linear-gradient(135deg,var(--ciano),var(--verde))}
+.dl.ok li::before{content:"✓";background:none;left:0;color:var(--verde);font-weight:700;font-size:9pt}
+.quote{border-left:2.5px solid var(--ciano);padding:1.5mm 0 1.5mm 4mm;margin:0 0 3mm;font-style:italic;color:#33415c;font-size:9.4pt;line-height:1.5;text-align:justify}
+.tbl-title{font-weight:700;font-size:8.8pt;letter-spacing:.07em;text-transform:uppercase;color:var(--azul);margin:0 0 2mm}
+.dt{width:100%;border-collapse:collapse;font-size:8.8pt;margin:0 0 3.5mm}
+.dt th,.dt td{border:1px solid #c6d2e4;padding:1.6mm 2.4mm;vertical-align:top;text-align:left;line-height:1.4}
+.dt th{background:#edf2fa;color:var(--azul);font-weight:700}
+.dt .lab{background:#edf2fa;color:var(--azul);font-weight:700;width:34%}
+.dt.cfixed td{height:6.5mm}
+.ref{font-size:8.6pt;line-height:1.5;margin:0 0 2.6mm;color:#22314a;text-align:justify}
+.chan-doc{border-left:2px solid var(--ciano);padding:.6mm 0 .6mm 3.5mm;margin:0 0 3mm;font-size:9.5pt;line-height:1.5;color:#22314a;text-align:justify}
+.chan-doc b{color:var(--azul)}
+.idx-item{display:flex;align-items:baseline;font-size:9.8pt;margin-bottom:2.4mm;color:#22314a}
+.idx-item .n{flex:0 0 10mm;font-weight:700;color:var(--azul)}
+.idx-item .t{flex:0 1 auto;max-width:78%}
+.idx-item .dots{flex:1;border-bottom:1.5px dotted #9fb0cc;margin:0 2mm;transform:translateY(-1mm)}
+.idx-item .pg{flex:0 0 auto;font-weight:700;color:var(--azul)}
+.signs{display:flex;gap:12mm;margin-top:10mm}
+.sign{flex:1;text-align:center;font-size:8.2pt;color:#33415c;line-height:1.5}
+.sign .sline{margin-top:14mm;border-top:1px solid var(--azul);padding-top:2mm;font-weight:700;color:var(--azul);font-size:8.6pt}
+
+/* Rodapé do documento — apenas a unidade de Itatiaiuçu */
+.footer{border-top:1.5px solid var(--azul);padding-top:3mm;position:relative;flex:0 0 auto;margin-top:5mm}
+.footer::before{content:"";position:absolute;top:-1.5px;left:0;width:37%;height:1.5px;background:linear-gradient(90deg,var(--ciano),var(--verde),var(--roxo))}
+.footer-title{font-size:8pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2.5mm;color:var(--azul)}
+.units{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:5mm;align-items:start}
+.units--one{grid-template-columns:1fr;justify-items:center}
+.unit{border-left:2px solid var(--ciano);padding-left:2.5mm;min-width:0;color:#364455;font-size:7.4pt;line-height:1.4}
+.units--one .unit{max-width:150mm;min-width:96mm}
+.unit b{display:block;color:var(--azul);font-size:8.1pt;margin-bottom:1mm;line-height:1.25}
+.unit address{font-style:normal}
+.unit .phone{display:block;color:var(--mut);margin-top:.6mm}
+.website{border-top:1px solid #d3ddea;text-align:center;font-size:7.5pt;letter-spacing:.11em;font-weight:700;margin-top:3.5mm;padding-top:2.5mm;color:var(--azul)}
+
+/* ============ TOAST ============ */
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--azul);color:#fff;padding:11px 16px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:80;max-width:90vw;box-shadow:0 6px 20px rgba(15,23,42,.35)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:#b42323}
+
+/* ============ IMPRESSÃO ============ */
+@page{size:A4;margin:0}
+@media print{
+  html,body{width:210mm;background:#fff}
+  #app,#docModal,#toast{display:none!important}
+  body.previewing #printRoot{background:none;padding:0}
+  #printRoot{display:block!important}
+  #printRoot.building{position:static;visibility:visible}
+  .sheet{box-shadow:none;margin:0;break-after:page;page-break-after:always}
+  .sheet:last-child{break-after:auto;page-break-after:auto}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media(max-width:700px){.brand{max-width:100%}.brand strong{white-space:normal}.toolbar .status{display:none}.wrap{padding:14px 10px}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="toolbar">
+    <div class="brand">
+      <img src="{{LOGO}}" alt="Grupo Performance">
+      <div class="tt">
+        <strong>Gerador do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</strong>
+        <span class="hint">Anexe o PDF com os dados da empresa, escolha os canais de denúncia e gere o documento pronto.</span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span class="status" id="statusPdf">Nenhum PDF anexado</span>
+    <button class="btn ghost" id="btnLimpar" type="button">Limpar</button>
+    <button class="btn" id="btnGerarTop" type="button">Gerar plano (PDF)</button>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ETAPA 1 -->
+    <section class="card" id="cardEmpresa">
+      <h2><span class="stepnum">1</span> Dados da empresa</h2>
+      <p class="sub">Anexe <b>um único documento PDF</b> contendo os dados de identificação da empresa (planilha de apresentação). O app lê o arquivo, reconhece os campos e preenche o plano automaticamente.</p>
+
+      <div class="drop" id="drop" role="button" tabindex="0" aria-label="Anexar PDF com os dados da empresa">
+        <div class="dic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+        </div>
+        <div>
+          <b>Arraste o PDF aqui ou clique para selecionar</b>
+          <small>PDF digital (com texto). O arquivo é lido no seu navegador — nada é enviado para servidores.</small>
+          <div class="manual"><button class="linklike" id="btnManual" type="button">Prefiro preencher os dados manualmente</button></div>
+        </div>
+      </div>
+      <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
+
+      <div class="fields" id="fieldsBox" hidden></div>
+      <p class="fields-note" id="fieldsNote" hidden>Confira e corrija os dados reconhecidos — estas informações serão usadas no documento gerado.</p>
+      <div class="okline" id="pdfOk" hidden></div>
+    </section>
+
+    <!-- ETAPA 2 -->
+    <section class="card" id="cardCanais">
+      <h2><span class="stepnum">2</span> Canais de denúncia</h2>
+      <p class="sub">Escolha <b>um ou mais canais</b> que a empresa irá disponibilizar. Ao marcar uma opção, informe os dados de contato/preenchimento correspondentes. No final, há um campo livre para um canal <b>diferente</b> dos modelos sugeridos.</p>
+
+      <div id="chanGrid"></div>
+
+      <div class="chan chan--outro" id="chanOutro" style="margin-top:12px">
+        <div class="chan-head">
+          <span class="chan-ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </span>
+          <span class="chan-tx">
+            <b>Outro canal de denúncia (criado pela empresa)</b>
+            <small>Descreva uma forma de canal <b>diferente</b> das opções acima — por exemplo, atendimento presencial agendado, caixa postal física dos Correios, aba específica na intranet, reunião mensal de escuta, entre outras.</small>
+          </span>
+        </div>
+        <div class="chan-fields">
+          <label class="fld"><span>Descrição do canal</span>
+            <textarea id="outroTxt" rows="3" placeholder="Ex.: Atendimento presencial e confidencial, com agendamento junto ao RH, realizado em sala reservada, permitindo o relato com ou sem identificação do denunciante."></textarea>
+          </label>
+        </div>
+      </div>
+
+      <div class="alerts" id="alerts"></div>
+      <div class="genrow">
+        <div class="grow"></div>
+        <button class="btn big" id="btnGerar" type="button">Gerar plano (PDF)</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="appfoot">
+    <b>Grupo Performance — Unidade Itatiaiuçu/MG</b><br>
+    Praça Antônio Quirino da Silva, 28 – Centro · Itatiaiuçu/MG – CEP 35.685-000<br>
+    (31) 3572-1818 / (31) 3572-1221 · www.performanceocupacional.com.br
+  </footer>
+</div>
+
+<!-- MODAL DE PRÉ-VISUALIZAÇÃO -->
+<div id="docModal" hidden>
+  <div class="modal-bar">
+    <strong>Pré-visualização do documento</strong>
+    <button class="zbtn" id="zOut" type="button" aria-label="Reduzir">−</button>
+    <span class="zinfo" id="zPct">100%</span>
+    <button class="zbtn" id="zIn" type="button" aria-label="Ampliar">+</button>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn ghost" id="btnFechar" type="button">Fechar</button>
+    <button class="btn" id="btnPrint" type="button">Baixar / Imprimir PDF</button>
+  </div>
+  <div id="docPreview"></div>
+</div>
+
+<div id="printRoot"></div>
+<div id="toast" role="status"></div>
+
+<script>{{PDFJS}}</script>
+<script type="text/plain" id="workerCode">{{WORKER}}</script>
+<script>{{EXTRACT}}</script>
+<script>{{APP}}</script>
+</body>
+</html>

@@ -1,15 +1,30 @@
 {
-  "name": "user",
+  "name": "gerador-plano-de-prevencao",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "private": true,
+  "description": "Gerador do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual — app de página única, 100% client-side, que lê os dados da empresa de um PDF e emite o plano pronto para impressão.",
+  "keywords": [
+    "assedio",
+    "nr-01",
+    "plano-de-prevencao",
+    "pdf",
+    "pdfjs",
+    "sst",
+    "offline-first"
+  ],
+  "license": "UNLICENSED",
+  "author": "Grupo Performance — Medicina e Segurança do Trabalho",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/performance-itatiaiucu-commits/Gerador-Plano-de-Prevencao.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
+  "scripts": {
+    "build": "python3 build.py",
+    "build:check": "python3 build.py --check",
+    "start": "python3 -m http.server 8080 --bind 0.0.0.0",
+    "test": "echo \"Nenhuma suíte automatizada ainda — veja a seção Testes no README.\" && exit 1"
+  },
+  "devDependencies": {
     "jsdom": "^29.1.1",
     "pdfjs-dist": "^3.11.174",
     "puppeteer": "^24.43.1"
