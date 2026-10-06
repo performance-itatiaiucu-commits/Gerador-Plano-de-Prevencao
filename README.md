@@ -15,6 +15,7 @@ emite o Plano de Prevenção e Enfrentamento ao Assédio pronto para impressão/
 - **Extração tolerante a PDFs "sujos".** O extrator normaliza codificações corrompidas comuns em
   documentos PT-BR gerados no Word (`«`→`ç`, `√`→`Ã`, `Á`→`Ç`, `⁄`→`Ú`, `„`→`ã` …) e lida com
   layouts de formulário variados (rótulo e valor na mesma linha, em linhas separadas ou em branco).
+- **Tipo de inscrição detectado** (CNPJ, CPF ou CAEPF) a partir do rótulo e da máscara do número, com validação do dígito verificador.
 - **Preenchimento manual como alternativa** caso o PDF seja digitalizado (imagem) ou ilegível.
 - **Sessão preservada** em `localStorage` entre recarregamentos.
 
@@ -22,7 +23,7 @@ emite o Plano de Prevenção e Enfrentamento ao Assédio pronto para impressão/
 
 1. Abra `index.html` no navegador (ou acesse a página publicada).
 2. **Etapa 1 — Dados da empresa:** arraste o PDF da planilha de apresentação. Os campos
-   (Razão Social, CNPJ, endereço, responsável, nº de colaboradores, CNAE, grau de risco…) são
+   (Razão Social, CNPJ/CPF/CAEPF, endereço, responsável, nº de colaboradores, CNAE, grau de risco…) são
    reconhecidos e preenchidos automaticamente. Também é possível preencher manualmente.
 3. **Etapa 2 — Canais de denúncia:** marque os canais que a empresa disponibilizará e informe os
    dados de contato. Há um campo livre para um canal personalizado.
