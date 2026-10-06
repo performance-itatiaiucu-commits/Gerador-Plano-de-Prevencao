@@ -94,6 +94,26 @@ body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto
 .genrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
 .genrow .grow{flex:1}
 
+/* Histórico de revisões (etapa 3) — grade Rev. | Data | Histórico */
+.rev-head,.rev-row{display:grid;grid-template-columns:62px 116px 1fr 34px;gap:8px;align-items:center}
+.rev-head{margin:16px 0 6px;font-size:11.5px;font-weight:600;color:#44536e;letter-spacing:.02em}
+.rev-row{margin-bottom:8px}
+.rev-row input{width:100%;border:1.5px solid #c9d4e6;border-radius:7px;padding:8px 10px;font:inherit;font-size:13.5px;color:var(--azul);background:#fff}
+.rev-row input:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(4,204,255,.18)}
+.rev-row .rev-num{text-align:center;font-weight:700;color:var(--azul)}
+.rev-del{flex:0 0 34px;height:34px;border-radius:8px;border:1.5px solid #dbe3f0;background:#fff;color:#8b3a3a;font-size:18px;line-height:1;cursor:pointer}
+.rev-del:hover{border-color:#e05252;background:#fff7f7}
+.rev-empty{font-size:12px;color:var(--mut);margin:2px 0 10px}
+.rev-empty[hidden]{display:none}
+@media(max-width:620px){
+  .rev-head{display:none}
+  .rev-row{grid-template-columns:62px 1fr 34px;gap:6px 8px}
+  .rev-row .rev-num{grid-column:1;grid-row:1}
+  .rev-row .rev-hist{grid-column:2;grid-row:1}
+  .rev-row .rev-del{grid-column:3;grid-row:1}
+  .rev-row .rev-data{grid-column:2/4;grid-row:2}
+}
+
 /* Rodapé do app (apenas unidade Itatiaiuçu) */
 .appfoot{text-align:center;font-size:12px;color:#5a6a83;padding:8px 16px 26px;line-height:1.6}
 .appfoot b{color:var(--azul)}
@@ -168,6 +188,14 @@ body.previewing .sheet{margin-bottom:10mm}
 .dt th{background:#edf2fa;color:var(--azul);font-weight:700}
 .dt .lab{background:#edf2fa;color:var(--azul);font-weight:700;width:34%}
 .dt.cfixed td{height:6.5mm}
+/* Lista de presença para divulgação: ficha de preenchimento manual.
+   .lab mais estreito, .write = campo em branco para escrita à mão,
+   .void = célula sem borda (deixa o campo de data curto, sem caixa vazia ao lado)
+   e .fine = texto de apoio em corpo menor dentro da célula. */
+.dt--form .lab{width:26%}
+.dt--form .write{height:9mm}
+.dt--form .void{border:0;background:none}
+.dt--form .fine{font-size:8.2pt;line-height:1.45;text-align:justify;color:#22314a}
 .ref{font-size:8.6pt;line-height:1.5;margin:0 0 2.6mm;color:#22314a;text-align:justify}
 .chan-doc{border-left:2px solid var(--ciano);padding:.6mm 0 .6mm 3.5mm;margin:0 0 3mm;font-size:9.5pt;line-height:1.5;color:#22314a;text-align:justify}
 .chan-doc b{color:var(--azul)}
@@ -179,6 +207,10 @@ body.previewing .sheet{margin-bottom:10mm}
 .signs{display:flex;gap:12mm;margin-top:10mm}
 .sign{flex:1;text-align:center;font-size:8.2pt;color:#33415c;line-height:1.5}
 .sign .sline{margin-top:14mm;border-top:1px solid var(--azul);padding-top:2mm;font-weight:700;color:var(--azul);font-size:8.6pt}
+/* Currículo complementar na assinatura (formação, autoria, contato): corpo menor e cor
+   secundária para não competir com o nome, o cargo e o registro profissional. */
+.sign .cv-extra{display:block;margin-top:1.2mm;font-size:7.4pt;color:var(--mut);line-height:1.5}
+.dt .cv-extra{display:block;margin-top:1mm;font-size:8pt;color:var(--mut);line-height:1.45}
 
 /* Rodapé do documento — apenas a unidade de Itatiaiuçu */
 .footer{border-top:1.5px solid var(--azul);padding-top:3mm;position:relative;flex:0 0 auto;margin-top:5mm}
@@ -277,6 +309,20 @@ body.previewing .sheet{margin-bottom:10mm}
           </label>
         </div>
       </div>
+
+    </section>
+
+    <!-- ETAPA 3 -->
+    <section class="card" id="cardRevisoes">
+      <h2><span class="stepnum">3</span> Histórico de revisões</h2>
+      <p class="sub">Tabela livre: a capa do plano reproduz <b>exatamente</b> as linhas abaixo, na ordem <b>Rev. · Data · Histórico</b>. Todos os campos são editáveis — inclusive a linha da elaboração (Rev. 00), cuja data e descrição podem ser alteradas. O número da <b>última</b> linha é o que aparece no cabeçalho de todas as páginas.</p>
+
+      <div class="rev-head">
+        <span>Rev.</span><span>Data</span><span>Histórico (descrição)</span><span></span>
+      </div>
+      <div id="revList"></div>
+      <p class="rev-empty" id="revEmpty">Nenhuma linha no histórico — use o botão abaixo para incluir.</p>
+      <button class="btn ghost" id="btnAddRev" type="button">+ Adicionar linha</button>
 
       <div class="alerts" id="alerts"></div>
       <div class="genrow">
@@ -620,6 +666,23 @@ body.previewing .sheet{margin-bottom:10mm}
   var LOGO_SRC = (document.querySelector('.brand img') || { src: '' }).src; /* logo inline já resolvido no HTML */
   var LS_KEY = 'gpp-plano-v1';
 
+  /* Identificação do responsável técnico pela elaboração.
+     Fonte única: reaproveitada na capa ("Elaborado por") e na assinatura (seção 18). */
+  var ELAB = {
+    nome: 'Peterson da Silva Cassemiro',
+    titulo: 'Técnico de Segurança do Trabalho | Reg. MTE nº 45.342/SP',
+    empresa: 'Grupo Performance — Medicina e Segurança do Trabalho',
+    atuacao: 'Consultor em SST desde 2012 · Acadêmico de Direito — Universidade de Itaúna/MG (em curso)',
+    autoria: 'Autor: &quot;A Efetivação dos Direitos Fundamentais à Saúde Mental no Trabalho&quot; — Coleção CAED-JUS 2025 (Editora Pembroke Collins)',
+    contato: '(31) 99693-4451 | peterson@performanceocupacional.med.br'
+  };
+  /* As linhas de currículo complementar (formação, autoria e contato) usam a classe
+     .cv-extra, com corpo menor e cor secundária, para não competir com o registro
+     profissional — que é o que dá validade técnica ao documento. */
+  var ELAB_SIGN =
+    ELAB.nome + '<br>' + ELAB.titulo + '<br>' + ELAB.empresa +
+    '<span class="cv-extra">' + ELAB.atuacao + '<br>' + ELAB.autoria + '<br>' + ELAB.contato + '</span>';
+
   /* ============================== ESTADO ============================== */
   var COMPANY_FIELDS = [
     { k: 'razaoSocial', l: 'Razão Social', req: true },
@@ -647,7 +710,10 @@ body.previewing .sheet{margin-bottom:10mm}
     company: {},
     channels: {},
     outro: '',
-    pdfName: ''
+    pdfName: '',
+    /* Histórico da capa (tabela livre): [{ num:'00', data:'dd/mm/aaaa', motivo:'' }].
+       Todas as linhas são editáveis — inclusive a da elaboração (Rev. 00). */
+    historico: []
   };
   COMPANY_FIELDS.forEach(function (f) { state.company[f.k] = ''; });
 
@@ -805,8 +871,87 @@ body.previewing .sheet{margin-bottom:10mm}
     save();
   });
 
-  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName })); }
+  /* ============================== HISTÓRICO DE REVISÕES ==============================
+     Tabela livre: todas as linhas — inclusive a da elaboração (Rev. 00) — são editáveis
+     e a capa reproduz exatamente o que estiver preenchido aqui. */
+  function pad2(n) { return ('0' + Number(n || 0)).slice(-2); }
+  /* Ponto de partida da tabela: a linha da elaboração, já pronta para edição. */
+  function historicoPadrao() {
+    return [{ num: '00', data: hojeBR(), motivo: 'Elaboração' }];
+  }
+  /* Linha em branco (sem número, data e motivo) não vai para o documento. */
+  function historicoValido() {
+    return state.historico.filter(function (r) {
+      return String(r.num || '').trim() || String(r.data || '').trim() || String(r.motivo || '').trim();
+    });
+  }
+  /* Nº sugerido para a próxima linha: um a mais que o maior número já preenchido. */
+  function proximoNumRev() {
+    var max = 0;
+    state.historico.forEach(function (r) {
+      var n = parseInt(r.num, 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+    return pad2(max + 1);
+  }
+  /* Revisão vigente (última linha preenchida) — vai no cabeçalho das páginas. */
+  function revAtual() {
+    var v = historicoValido();
+    if (!v.length) return '00';
+    var n = String(v[v.length - 1].num || '').trim();
+    return n || '00';
+  }
+
+  function renderHistorico() {
+    var list = $('#revList');
+    list.innerHTML = '';
+    state.historico.forEach(function (r, i) {
+      var row = document.createElement('div');
+      row.className = 'rev-row';
+      row.dataset.i = i;
+      row.innerHTML =
+        '<input class="rev-num" data-c="num" inputmode="numeric" maxlength="4" aria-label="Número da revisão" placeholder="00" value="' + esc(r.num) + '">' +
+        '<input class="rev-data" data-c="data" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data" value="' + esc(r.data) + '">' +
+        '<input class="rev-hist" data-c="motivo" placeholder="Descrição — ex.: Elaboração, Revisão geral do Plano…" aria-label="Histórico" value="' + esc(r.motivo) + '">' +
+        '<button class="rev-del" type="button" title="Remover linha" aria-label="Remover linha">×</button>';
+      list.appendChild(row);
+    });
+    $('#revEmpty').hidden = state.historico.length > 0;
+  }
+
+  $('#btnAddRev').addEventListener('click', function () {
+    var num = proximoNumRev();
+    state.historico.push({ num: num, data: hojeBR(), motivo: '' });
+    renderHistorico();
+    save();
+    var rows = $$('#revList .rev-row');
+    var last = rows[rows.length - 1];
+    if (last) $('.rev-hist', last).focus();
+    toast('Linha ' + num + ' adicionada — ajuste número, data e descrição.');
+  });
+
+  $('#revList').addEventListener('input', function (e) {
+    var row = e.target.closest('.rev-row');
+    if (!row) return;
+    var i = Number(row.dataset.i);
+    if (!state.historico[i]) return;
+    state.historico[i][e.target.dataset.c] = e.target.value;
+    save();
+  });
+
+  $('#revList').addEventListener('click', function (e) {
+    var btn = e.target.closest('.rev-del');
+    if (!btn) return;
+    var i = Number(btn.closest('.rev-row').dataset.i);
+    state.historico.splice(i, 1);
+    renderHistorico();
+    save();
+  });
+
+  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName, historico: state.historico })); }
   function restore() {
+    /* Sem sessão salva, a tabela começa com a linha da elaboração pronta para edição. */
+    state.historico = historicoPadrao();
     var raw = store(LS_KEY);
     if (!raw) return;
     try {
@@ -822,7 +967,22 @@ body.previewing .sheet{margin-bottom:10mm}
       });
       state.outro = (d.outro && String(d.outro)) || '';
       state.pdfName = (d.pdfName && String(d.pdfName)) || '';
-    } catch (e) {}
+      /* Compatibilidade: 'revisoes' era o nome do campo quando a linha da elaboração
+         (Rev. 00) era fixa e ficava fora da lista — nesse caso ela é reincluída. */
+      var bruto = Array.isArray(d.historico) ? d.historico : null;
+      var legacy = !bruto && Array.isArray(d.revisoes);
+      var linhas = bruto || (legacy ? d.revisoes : null);
+      if (linhas === null) {
+        state.historico = historicoPadrao();
+      } else {
+        state.historico = linhas.map(function (r) {
+          return { num: String((r && r.num) || ''), data: String((r && r.data) || ''), motivo: String((r && r.motivo) || '') };
+        });
+        if (legacy) state.historico.unshift(historicoPadrao()[0]);
+      }
+    } catch (e) {
+      state.historico = historicoPadrao();
+    }
   }
 
   /* ============================== PDF (etapa 1) ============================== */
@@ -1217,6 +1377,16 @@ body.previewing .sheet{margin-bottom:10mm}
     ]});
 
     /* 16 — LISTA DE PRESENÇA */
+    /* Resumo do conteúdo programático: fica dentro da própria tabela (linha própria),
+       seguindo o modelo em PDF — antes era um parágrafo solto abaixo da tabela. */
+    var CONTEUDO_PROG =
+      'Resumo dos temas apresentados durante a divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual: ' +
+      'identificação da empresa e da empresa elaboradora do Plano; termos e definições; ' +
+      'introdução: a responsabilidade da empresa na criação de um ambiente de trabalho seguro; objetivo do Plano; ' +
+      'assédio moral: conceito e como identificar; assédio sexual: conceito e como identificar; ' +
+      'canais de denúncia e suas diretrizes; fluxo de apuração e comissão/comitê de apuração; ' +
+      'diretrizes de proteção à saúde mental; conflitos interpessoais × assédio; medidas disciplinares aplicáveis; ' +
+      'ações preventivas e formas de divulgação do Plano.';
     var presRows = '';
     for (var pr = 1; pr <= 10; pr++) {
       presRows += '<tr><td style="text-align:center">' + pr + '</td><td></td><td></td><td></td></tr>';
@@ -1225,13 +1395,14 @@ body.previewing .sheet{margin-bottom:10mm}
       '<section class="blk"><h2 class="sec-t">16. Lista de presença para divulgação</h2>' +
       '<p class="dp">A <b>' + EMP + '</b> adotará a divulgação contínua e estruturada deste Plano, registrando a participação dos colaboradores.</p>' +
       '<p class="tbl-title">Lista de presença para divulgação</p>' +
-      '<table class="dt">' +
-        '<tr><td class="lab" style="width:22%">Razão Social</td><td>' + X(E.razaoSocial) + '</td></tr>' +
-        '<tr><td class="lab">CNPJ</td><td>' + X(E.cnpj) + '</td></tr>' +
-        '<tr><td class="lab">Divulgação</td><td>Divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</td></tr>' +
-        '<tr><td class="lab">Responsável pela divulgação</td><td></td><td class="lab" style="width:18%">Data</td><td></td></tr>' +
-      '</table>' +
-      '<p class="dp" style="font-size:8.6pt"><b>Conteúdo programático abordado:</b> resumo dos temas apresentados durante a divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual: identificação da empresa e da empresa elaboradora do Plano; termos e definições; introdução: a responsabilidade da empresa na criação de um ambiente de trabalho seguro; objetivo do Plano; assédio moral: conceito e como identificar; assédio sexual: conceito e como identificar; canais de denúncia e suas diretrizes; fluxo de apuração e comissão/comitê de apuração; diretrizes de proteção à saúde mental; conflitos interpessoais × assédio; medidas disciplinares aplicáveis; ações preventivas e formas de divulgação do Plano.</p></section>',
+      '<table class="dt dt--form">' +
+        '<tr><td class="lab">Razão social</td><td colspan="3">' + X(E.razaoSocial) + '</td></tr>' +
+        '<tr><td class="lab">CNPJ</td><td colspan="3">' + X(E.cnpj) + '</td></tr>' +
+        '<tr><td class="lab">Divulgação</td><td colspan="3">Divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</td></tr>' +
+        '<tr><td class="lab">Responsável pela divulgação</td><td colspan="3" class="write"></td></tr>' +
+        '<tr><td class="lab">Data</td><td class="write"></td><td class="void" colspan="2"></td></tr>' +
+        '<tr><td class="lab">Conteúdo programático abordado</td><td colspan="3" class="fine">' + CONTEUDO_PROG + '</td></tr>' +
+      '</table></section>',
       '<section class="blk"><table class="dt cfixed">' +
         '<tr><th style="width:10mm;text-align:center">Nº</th><th>Nome</th><th>CPF</th><th style="width:42%">Assinatura</th></tr>' +
         presRows +
@@ -1260,7 +1431,7 @@ body.previewing .sheet{margin-bottom:10mm}
       '<p class="dp">Este Plano de prevenção e enfrentamento ao assédio moral e sexual foi elaborado e aprovado por:</p>' +
       '<p class="dp" style="margin-top:8mm">' + localData + ', ' + hojeExtenso() + '.</p>' +
       '<div class="signs">' +
-        '<div class="sign"><div class="sline">Elaboração</div>Peterson da Silva Cassemiro<br>Técnico de Segurança do Trabalho | Reg. M.T.E nº 45.342/SP<br>Consultor especialista em SST desde 2012<br>(31) 9 9693-4451 | peterson@performanceocupacional.med.br</div>' +
+        '<div class="sign"><div class="sline">Elaboração</div>' + ELAB_SIGN + '</div>' +
         '<div class="sign"><div class="sline">Aprovado</div>Responsável pela empresa ou preposto<br><b>' + EMP + '</b><br>Responsável por estabelecer, implementar e assegurar o cumprimento deste plano.</div>' +
       '</div></section>'
     ]});
@@ -1293,6 +1464,7 @@ body.previewing .sheet{margin-bottom:10mm}
     var E = state.company;
     var chanList = CH.filter(function (c) { return state.channels[c.id].on; });
     var outroTxt = state.outro.trim();
+    var REV_ATUAL = revAtual();
 
     var root = $('#printRoot');
     root.innerHTML = '';
@@ -1312,7 +1484,7 @@ body.previewing .sheet{margin-bottom:10mm}
         head = frag('<header class="docHead"><img alt="" src="' + LOGO_SRC + '">' +
           '<div class="dh-t"><b>Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</b>' +
           '<span>' + esc(E.razaoSocial.trim() || '—') + '</span></div>' +
-          '<div class="dh-r"><span>Rev. 00</span><b>Pág. ' + no + '</b></div></header>');
+          '<div class="dh-r"><span>Rev. ' + esc(REV_ATUAL) + '</span><b>Pág. ' + no + '</b></div></header>');
       }
       var body = document.createElement('div');
       body.className = 'dbody' + (kind === 'cover' ? ' cover-body' : '');
@@ -1342,12 +1514,22 @@ body.previewing .sheet{margin-bottom:10mm}
         '</div>' +
       '</div>'
     ));
+    /* Histórico da capa: reproduce exatamente as linhas preenchidas na etapa 3,
+       na ordem Rev. | Data | Histórico. Linhas em branco são ignoradas; se não
+       sobrar nenhuma, a tabela sai apenas com o quadro "Elaborado por". */
+    var revRows = '';
+    historicoValido().forEach(function (r) {
+      revRows += '<tr>' +
+        '<td style="text-align:center">' + esc(String(r.num).trim()) + '</td>' +
+        '<td>' + esc(String(r.data).trim()) + '</td>' +
+        '<td>' + esc(String(r.motivo).trim()) + '</td>' +
+      '</tr>';
+    });
     cov.body.appendChild(frag(
       '<table class="dt" style="margin-top:2mm">' +
-        '<tr><th style="width:26%">Elaboração</th><th style="width:12%">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' +
-        '<tr><td>' + hojeBR() + '</td><td style="text-align:center">00</td><td>' + hojeBR() + '</td><td>Elaboração</td></tr>' +
-        '<tr><th colspan="4">Elaborado por</th></tr>' +
-        '<tr><td colspan="4">Peterson da Silva Cassemiro — Técnico de Segurança do Trabalho | Reg. M.T.E nº 45.342/SP</td></tr>' +
+        (revRows ? '<tr><th style="width:12%;text-align:center">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' + revRows : '') +
+        '<tr><th colspan="3">Elaborado por</th></tr>' +
+        '<tr><td colspan="3">' + ELAB_SIGN + '</td></tr>' +
       '</table>'
     ));
 
@@ -1501,8 +1683,10 @@ body.previewing .sheet{margin-bottom:10mm}
     CH.forEach(function (c) { state.channels[c.id] = { on: false, v: {} }; });
     state.outro = '';
     state.pdfName = '';
+    state.historico = historicoPadrao();
     renderFields();
     renderChannels();
+    renderHistorico();
     $('#outroTxt').value = '';
     $('#fieldsBox').hidden = true;
     $('#fieldsNote').hidden = true;
@@ -1517,6 +1701,7 @@ body.previewing .sheet{margin-bottom:10mm}
   restore();
   renderFields();
   renderChannels();
+  renderHistorico();
   $('#outroTxt').value = state.outro;
   if (state.pdfName) setStatus('Sessão anterior: ' + state.pdfName + ' (reanexe o PDF para recarregar os dados)');
   var hasCompany = COMPANY_FIELDS.some(function (f) { return state.company[f.k].trim(); });
