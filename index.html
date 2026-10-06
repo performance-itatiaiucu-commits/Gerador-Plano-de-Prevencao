@@ -94,6 +94,31 @@ body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto
 .genrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
 .genrow .grow{flex:1}
 
+/* Histórico de revisões (etapa 3) — grade Rev. | Data | Histórico */
+.rev-head,.rev-row{display:grid;grid-template-columns:62px 116px 1fr 34px;gap:8px;align-items:center}
+.rev-head{margin:16px 0 6px;font-size:11.5px;font-weight:600;color:#44536e;letter-spacing:.02em}
+.rev-row{margin-bottom:8px}
+.rev-row input{width:100%;border:1.5px solid #c9d4e6;border-radius:7px;padding:8px 10px;font:inherit;font-size:13.5px;color:var(--azul);background:#fff}
+.rev-row input:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(4,204,255,.18)}
+.rev-row .rev-num{text-align:center;font-weight:700}
+.rev-row--fixa{background:#f4f8ff;border:1.5px dashed #cfd9e8;border-radius:9px;padding:8px 10px;font-size:13px;color:#44536e}
+.rev-row--fixa .rev-num{color:var(--azul)}
+.rev-del{flex:0 0 34px;height:34px;border-radius:8px;border:1.5px solid #dbe3f0;background:#fff;color:#8b3a3a;font-size:18px;line-height:1;cursor:pointer}
+.rev-del:hover{border-color:#e05252;background:#fff7f7}
+.rev-empty{font-size:12px;color:var(--mut);margin:2px 0 10px}
+.rev-empty[hidden]{display:none}
+@media(max-width:620px){
+  .rev-head{display:none}
+  .rev-row{grid-template-columns:62px 1fr 34px;gap:6px 8px}
+  .rev-row .rev-num{grid-column:1;grid-row:1}
+  .rev-row .rev-hist{grid-column:2;grid-row:1}
+  .rev-row .rev-del{grid-column:3;grid-row:1}
+  .rev-row .rev-data{grid-column:2/4;grid-row:2}
+  .rev-row--fixa .rev-num,.rev-row--fixa .rev-hist{grid-row:auto}
+  .rev-row--fixa .rev-data{grid-column:2;grid-row:1}
+  .rev-row--fixa{padding-bottom:10px}
+}
+
 /* Rodapé do app (apenas unidade Itatiaiuçu) */
 .appfoot{text-align:center;font-size:12px;color:#5a6a83;padding:8px 16px 26px;line-height:1.6}
 .appfoot b{color:var(--azul)}
@@ -289,6 +314,26 @@ body.previewing .sheet{margin-bottom:10mm}
           </label>
         </div>
       </div>
+
+    </section>
+
+    <!-- ETAPA 3 -->
+    <section class="card" id="cardRevisoes">
+      <h2><span class="stepnum">3</span> Histórico de revisões</h2>
+      <p class="sub">A capa do plano traz o histórico de revisões na ordem <b>Rev. · Data · Histórico</b>. A <b>linha 1</b> é sempre a elaboração (Rev. 00). Ao adicionar uma revisão, o app gera a linha seguinte (Rev. 01, 02, 03…) com a data e o motivo informados — e o número da revisão passa a constar no cabeçalho de todas as páginas.</p>
+
+      <div class="rev-head">
+        <span>Rev.</span><span>Data</span><span>Histórico (motivo da revisão)</span><span></span>
+      </div>
+      <div class="rev-row rev-row--fixa">
+        <span class="rev-num">00</span>
+        <span class="rev-data" id="revDataBase">—</span>
+        <span class="rev-hist">Elaboração</span>
+        <span></span>
+      </div>
+      <div id="revList"></div>
+      <p class="rev-empty" id="revEmpty">Nenhuma revisão cadastrada — o documento sairá apenas com a linha da elaboração (Rev. 00).</p>
+      <button class="btn ghost" id="btnAddRev" type="button">+ Adicionar revisão</button>
 
       <div class="alerts" id="alerts"></div>
       <div class="genrow">
@@ -676,7 +721,10 @@ body.previewing .sheet{margin-bottom:10mm}
     company: {},
     channels: {},
     outro: '',
-    pdfName: ''
+    pdfName: '',
+    /* Histórico de revisões da capa: [{ num:'01', data:'dd/mm/aaaa', motivo:'' }].
+       A linha 1 (Rev. 00 — elaboração) é fixa e não fica nesta lista. */
+    revisoes: []
   };
   COMPANY_FIELDS.forEach(function (f) { state.company[f.k] = ''; });
 
@@ -834,7 +882,85 @@ body.previewing .sheet{margin-bottom:10mm}
     save();
   });
 
-  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName })); }
+  /* ============================== HISTÓRICO DE REVISÕES ============================== */
+  function pad2(n) { return ('0' + Number(n || 0)).slice(-2); }
+  /* Só entram no documento as revisões que tenham motivo (histórico) descrito. */
+  function revisoesValidas() {
+    return state.revisoes.filter(function (r) { return String(r.motivo || '').trim(); });
+  }
+  /* Nº sugerido para a próxima revisão: um a mais que o maior número já cadastrado. */
+  function proximoNumRev() {
+    var max = 0;
+    state.revisoes.forEach(function (r) {
+      var n = parseInt(r.num, 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+    return pad2(max + 1);
+  }
+  /* true quando a lista está numerada em sequência (01, 02, 03…) — usado após remover
+     uma linha: assim os números não ficam furados, mas edições manuais são preservadas. */
+  function sequenciaLimpa() {
+    return state.revisoes.every(function (r, k) { return parseInt(r.num, 10) === k + 1; });
+  }
+  /* Revisão vigente (a última do histórico) — vai no cabeçalho das páginas. */
+  function revAtual() {
+    var v = revisoesValidas();
+    if (!v.length) return '00';
+    var n = String(v[v.length - 1].num || '').trim();
+    return n || pad2(v.length);
+  }
+
+  function renderRevisoes() {
+    var list = $('#revList');
+    list.innerHTML = '';
+    $('#revDataBase').textContent = hojeBR();
+    state.revisoes.forEach(function (r, i) {
+      var row = document.createElement('div');
+      row.className = 'rev-row';
+      row.dataset.i = i;
+      row.innerHTML =
+        '<input class="rev-num" data-c="num" inputmode="numeric" maxlength="2" aria-label="Número da revisão" value="' + esc(r.num) + '">' +
+        '<input class="rev-data" data-c="data" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data da revisão" value="' + esc(r.data) + '">' +
+        '<input class="rev-hist" data-c="motivo" placeholder="Ex.: Revisão geral do Plano e inclusão da Comissão de Apuração" aria-label="Motivo da revisão" value="' + esc(r.motivo) + '">' +
+        '<button class="rev-del" type="button" title="Remover revisão" aria-label="Remover revisão">×</button>';
+      list.appendChild(row);
+    });
+    $('#revEmpty').hidden = state.revisoes.length > 0;
+  }
+
+  $('#btnAddRev').addEventListener('click', function () {
+    var num = proximoNumRev();
+    state.revisoes.push({ num: num, data: hojeBR(), motivo: '' });
+    renderRevisoes();
+    save();
+    var rows = $$('#revList .rev-row');
+    var last = rows[rows.length - 1];
+    if (last) $('.rev-hist', last).focus();
+    toast('Revisão ' + num + ' adicionada — informe a data e o motivo.');
+  });
+
+  $('#revList').addEventListener('input', function (e) {
+    var row = e.target.closest('.rev-row');
+    if (!row) return;
+    var i = Number(row.dataset.i);
+    if (!state.revisoes[i]) return;
+    state.revisoes[i][e.target.dataset.c] = e.target.value;
+    save();
+  });
+
+  $('#revList').addEventListener('click', function (e) {
+    var btn = e.target.closest('.rev-del');
+    if (!btn) return;
+    var i = Number(btn.closest('.rev-row').dataset.i);
+    var limpa = sequenciaLimpa();
+    state.revisoes.splice(i, 1);
+    /* Se a numeração estava em sequência, renumera para não deixar furos (01, 02, 03…). */
+    if (limpa) state.revisoes.forEach(function (r, k) { r.num = pad2(k + 1); });
+    renderRevisoes();
+    save();
+  });
+
+  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName, revisoes: state.revisoes })); }
   function restore() {
     var raw = store(LS_KEY);
     if (!raw) return;
@@ -851,6 +977,9 @@ body.previewing .sheet{margin-bottom:10mm}
       });
       state.outro = (d.outro && String(d.outro)) || '';
       state.pdfName = (d.pdfName && String(d.pdfName)) || '';
+      state.revisoes = Array.isArray(d.revisoes) ? d.revisoes.map(function (r) {
+        return { num: String((r && r.num) || ''), data: String((r && r.data) || ''), motivo: String((r && r.motivo) || '') };
+      }) : [];
     } catch (e) {}
   }
 
@@ -1333,6 +1462,7 @@ body.previewing .sheet{margin-bottom:10mm}
     var E = state.company;
     var chanList = CH.filter(function (c) { return state.channels[c.id].on; });
     var outroTxt = state.outro.trim();
+    var REV_ATUAL = revAtual();
 
     var root = $('#printRoot');
     root.innerHTML = '';
@@ -1352,7 +1482,7 @@ body.previewing .sheet{margin-bottom:10mm}
         head = frag('<header class="docHead"><img alt="" src="' + LOGO_SRC + '">' +
           '<div class="dh-t"><b>Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</b>' +
           '<span>' + esc(E.razaoSocial.trim() || '—') + '</span></div>' +
-          '<div class="dh-r"><span>Rev. 00</span><b>Pág. ' + no + '</b></div></header>');
+          '<div class="dh-r"><span>Rev. ' + esc(REV_ATUAL) + '</span><b>Pág. ' + no + '</b></div></header>');
       }
       var body = document.createElement('div');
       body.className = 'dbody' + (kind === 'cover' ? ' cover-body' : '');
@@ -1382,12 +1512,21 @@ body.previewing .sheet{margin-bottom:10mm}
         '</div>' +
       '</div>'
     ));
+    /* Histórico de revisões da capa: linha 1 = elaboração (Rev. 00); as demais linhas
+       vêm das revisões cadastradas na etapa 3, na ordem Rev. | Data | Histórico. */
+    var revRows = '';
+    revisoesValidas().forEach(function (r) {
+      var num = String(r.num || '').trim() || '—';
+      var data = String(r.data || '').trim() || hojeBR();
+      revRows += '<tr><td style="text-align:center">' + esc(num) + '</td><td>' + esc(data) + '</td><td>' + esc(String(r.motivo).trim()) + '</td></tr>';
+    });
     cov.body.appendChild(frag(
       '<table class="dt" style="margin-top:2mm">' +
-        '<tr><th style="width:26%">Elaboração</th><th style="width:12%">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' +
-        '<tr><td>' + hojeBR() + '</td><td style="text-align:center">00</td><td>' + hojeBR() + '</td><td>Elaboração</td></tr>' +
-        '<tr><th colspan="4">Elaborado por</th></tr>' +
-        '<tr><td colspan="4">' + ELAB_SIGN + '</td></tr>' +
+        '<tr><th style="width:12%;text-align:center">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' +
+        '<tr><td style="text-align:center">00</td><td>' + hojeBR() + '</td><td>Elaboração</td></tr>' +
+        revRows +
+        '<tr><th colspan="3">Elaborado por</th></tr>' +
+        '<tr><td colspan="3">' + ELAB_SIGN + '</td></tr>' +
       '</table>'
     ));
 
@@ -1541,8 +1680,10 @@ body.previewing .sheet{margin-bottom:10mm}
     CH.forEach(function (c) { state.channels[c.id] = { on: false, v: {} }; });
     state.outro = '';
     state.pdfName = '';
+    state.revisoes = [];
     renderFields();
     renderChannels();
+    renderRevisoes();
     $('#outroTxt').value = '';
     $('#fieldsBox').hidden = true;
     $('#fieldsNote').hidden = true;
@@ -1557,6 +1698,7 @@ body.previewing .sheet{margin-bottom:10mm}
   restore();
   renderFields();
   renderChannels();
+  renderRevisoes();
   $('#outroTxt').value = state.outro;
   if (state.pdfName) setStatus('Sessão anterior: ' + state.pdfName + ' (reanexe o PDF para recarregar os dados)');
   var hasCompany = COMPANY_FIELDS.some(function (f) { return state.company[f.k].trim(); });

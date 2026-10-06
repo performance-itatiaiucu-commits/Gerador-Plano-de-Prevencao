@@ -26,7 +26,11 @@ emite o Plano de Prevenção e Enfrentamento ao Assédio pronto para impressão/
    reconhecidos e preenchidos automaticamente. Também é possível preencher manualmente.
 3. **Etapa 2 — Canais de denúncia:** marque os canais que a empresa disponibilizará e informe os
    dados de contato. Há um campo livre para um canal personalizado.
-4. Clique em **Gerar plano (PDF)**, confira a pré-visualização e imprima/salve como PDF.
+4. **Etapa 3 — Histórico de revisões:** a capa sai com a linha da elaboração (Rev. 00). Para
+   cada atualização, clique em **+ Adicionar revisão**: o app gera a linha seguinte (Rev. 01, 02,
+   03…) com número, data e motivo (histórico) informados, e o número da última revisão passa a
+   constar no cabeçalho de todas as páginas.
+5. Clique em **Gerar plano (PDF)**, confira a pré-visualização e imprima/salve como PDF.
 
 ## Estrutura do repositório
 
