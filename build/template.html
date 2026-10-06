@@ -168,6 +168,14 @@ body.previewing .sheet{margin-bottom:10mm}
 .dt th{background:#edf2fa;color:var(--azul);font-weight:700}
 .dt .lab{background:#edf2fa;color:var(--azul);font-weight:700;width:34%}
 .dt.cfixed td{height:6.5mm}
+/* Lista de presença para divulgação: ficha de preenchimento manual.
+   .lab mais estreito, .write = campo em branco para escrita à mão,
+   .void = célula sem borda (deixa o campo de data curto, sem caixa vazia ao lado)
+   e .fine = texto de apoio em corpo menor dentro da célula. */
+.dt--form .lab{width:26%}
+.dt--form .write{height:9mm}
+.dt--form .void{border:0;background:none}
+.dt--form .fine{font-size:8.2pt;line-height:1.45;text-align:justify;color:#22314a}
 .ref{font-size:8.6pt;line-height:1.5;margin:0 0 2.6mm;color:#22314a;text-align:justify}
 .chan-doc{border-left:2px solid var(--ciano);padding:.6mm 0 .6mm 3.5mm;margin:0 0 3mm;font-size:9.5pt;line-height:1.5;color:#22314a;text-align:justify}
 .chan-doc b{color:var(--azul)}

@@ -641,6 +641,16 @@
     ]});
 
     /* 16 — LISTA DE PRESENÇA */
+    /* Resumo do conteúdo programático: fica dentro da própria tabela (linha própria),
+       seguindo o modelo em PDF — antes era um parágrafo solto abaixo da tabela. */
+    var CONTEUDO_PROG =
+      'Resumo dos temas apresentados durante a divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual: ' +
+      'identificação da empresa e da empresa elaboradora do Plano; termos e definições; ' +
+      'introdução: a responsabilidade da empresa na criação de um ambiente de trabalho seguro; objetivo do Plano; ' +
+      'assédio moral: conceito e como identificar; assédio sexual: conceito e como identificar; ' +
+      'canais de denúncia e suas diretrizes; fluxo de apuração e comissão/comitê de apuração; ' +
+      'diretrizes de proteção à saúde mental; conflitos interpessoais × assédio; medidas disciplinares aplicáveis; ' +
+      'ações preventivas e formas de divulgação do Plano.';
     var presRows = '';
     for (var pr = 1; pr <= 10; pr++) {
       presRows += '<tr><td style="text-align:center">' + pr + '</td><td></td><td></td><td></td></tr>';
@@ -649,13 +659,14 @@
       '<section class="blk"><h2 class="sec-t">16. Lista de presença para divulgação</h2>' +
       '<p class="dp">A <b>' + EMP + '</b> adotará a divulgação contínua e estruturada deste Plano, registrando a participação dos colaboradores.</p>' +
       '<p class="tbl-title">Lista de presença para divulgação</p>' +
-      '<table class="dt">' +
-        '<tr><td class="lab" style="width:22%">Razão Social</td><td>' + X(E.razaoSocial) + '</td></tr>' +
-        '<tr><td class="lab">CNPJ</td><td>' + X(E.cnpj) + '</td></tr>' +
-        '<tr><td class="lab">Divulgação</td><td>Divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</td></tr>' +
-        '<tr><td class="lab">Responsável pela divulgação</td><td></td><td class="lab" style="width:18%">Data</td><td></td></tr>' +
-      '</table>' +
-      '<p class="dp" style="font-size:8.6pt"><b>Conteúdo programático abordado:</b> resumo dos temas apresentados durante a divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual: identificação da empresa e da empresa elaboradora do Plano; termos e definições; introdução: a responsabilidade da empresa na criação de um ambiente de trabalho seguro; objetivo do Plano; assédio moral: conceito e como identificar; assédio sexual: conceito e como identificar; canais de denúncia e suas diretrizes; fluxo de apuração e comissão/comitê de apuração; diretrizes de proteção à saúde mental; conflitos interpessoais × assédio; medidas disciplinares aplicáveis; ações preventivas e formas de divulgação do Plano.</p></section>',
+      '<table class="dt dt--form">' +
+        '<tr><td class="lab">Razão social</td><td colspan="3">' + X(E.razaoSocial) + '</td></tr>' +
+        '<tr><td class="lab">CNPJ</td><td colspan="3">' + X(E.cnpj) + '</td></tr>' +
+        '<tr><td class="lab">Divulgação</td><td colspan="3">Divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</td></tr>' +
+        '<tr><td class="lab">Responsável pela divulgação</td><td colspan="3" class="write"></td></tr>' +
+        '<tr><td class="lab">Data</td><td class="write"></td><td class="void" colspan="2"></td></tr>' +
+        '<tr><td class="lab">Conteúdo programático abordado</td><td colspan="3" class="fine">' + CONTEUDO_PROG + '</td></tr>' +
+      '</table></section>',
       '<section class="blk"><table class="dt cfixed">' +
         '<tr><th style="width:10mm;text-align:center">Nº</th><th>Nome</th><th>CPF</th><th style="width:42%">Assinatura</th></tr>' +
         presRows +
