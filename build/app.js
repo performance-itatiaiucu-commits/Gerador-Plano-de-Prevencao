@@ -27,6 +27,23 @@
   var LOGO_SRC = (document.querySelector('.brand img') || { src: '' }).src; /* logo inline já resolvido no HTML */
   var LS_KEY = 'gpp-plano-v1';
 
+  /* Identificação do responsável técnico pela elaboração.
+     Fonte única: reaproveitada na capa ("Elaborado por") e na assinatura (seção 18). */
+  var ELAB = {
+    nome: 'Peterson da Silva Cassemiro',
+    titulo: 'Técnico de Segurança do Trabalho | Reg. MTE nº 45.342/SP',
+    empresa: 'Grupo Performance — Medicina e Segurança do Trabalho',
+    atuacao: 'Consultor em SST desde 2012 · Acadêmico de Direito — Universidade de Itaúna/MG (em curso)',
+    autoria: 'Autor: &quot;A Efetivação dos Direitos Fundamentais à Saúde Mental no Trabalho&quot; — Coleção CAED-JUS 2025 (Editora Pembroke Collins)',
+    contato: '(31) 99693-4451 | peterson@performanceocupacional.med.br'
+  };
+  /* As linhas de currículo complementar (formação, autoria e contato) usam a classe
+     .cv-extra, com corpo menor e cor secundária, para não competir com o registro
+     profissional — que é o que dá validade técnica ao documento. */
+  var ELAB_SIGN =
+    ELAB.nome + '<br>' + ELAB.titulo + '<br>' + ELAB.empresa +
+    '<span class="cv-extra">' + ELAB.atuacao + '<br>' + ELAB.autoria + '<br>' + ELAB.contato + '</span>';
+
   /* ============================== ESTADO ============================== */
   var COMPANY_FIELDS = [
     { k: 'razaoSocial', l: 'Razão Social', req: true },
@@ -667,7 +684,7 @@
       '<p class="dp">Este Plano de prevenção e enfrentamento ao assédio moral e sexual foi elaborado e aprovado por:</p>' +
       '<p class="dp" style="margin-top:8mm">' + localData + ', ' + hojeExtenso() + '.</p>' +
       '<div class="signs">' +
-        '<div class="sign"><div class="sline">Elaboração</div>Peterson da Silva Cassemiro<br>Técnico de Segurança do Trabalho | Reg. M.T.E nº 45.342/SP<br>Consultor especialista em SST desde 2012<br>Acadêmico de Direito — Universidade de Itaúna/MG<br>Autor: &quot;A Efetivação dos Direitos Fundamentais à Saúde Mental no Trabalho&quot; — Coleção CAED-JUS 2025 (Ed. Pembroke Collins Books &amp; Education)<br>(31) 9 9693-4451 | peterson@performanceocupacional.med.br</div>' +
+        '<div class="sign"><div class="sline">Elaboração</div>' + ELAB_SIGN + '</div>' +
         '<div class="sign"><div class="sline">Aprovado</div>Responsável pela empresa ou preposto<br><b>' + EMP + '</b><br>Responsável por estabelecer, implementar e assegurar o cumprimento deste plano.</div>' +
       '</div></section>'
     ]});
@@ -754,7 +771,7 @@
         '<tr><th style="width:26%">Elaboração</th><th style="width:12%">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' +
         '<tr><td>' + hojeBR() + '</td><td style="text-align:center">00</td><td>' + hojeBR() + '</td><td>Elaboração</td></tr>' +
         '<tr><th colspan="4">Elaborado por</th></tr>' +
-        '<tr><td colspan="4">Peterson da Silva Cassemiro — Técnico de Segurança do Trabalho | Reg. M.T.E nº 45.342/SP</td></tr>' +
+        '<tr><td colspan="4">' + ELAB_SIGN + '</td></tr>' +
       '</table>'
     ));
 
