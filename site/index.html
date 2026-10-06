@@ -100,9 +100,7 @@ body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto
 .rev-row{margin-bottom:8px}
 .rev-row input{width:100%;border:1.5px solid #c9d4e6;border-radius:7px;padding:8px 10px;font:inherit;font-size:13.5px;color:var(--azul);background:#fff}
 .rev-row input:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(4,204,255,.18)}
-.rev-row .rev-num{text-align:center;font-weight:700}
-.rev-row--fixa{background:#f4f8ff;border:1.5px dashed #cfd9e8;border-radius:9px;padding:8px 10px;font-size:13px;color:#44536e}
-.rev-row--fixa .rev-num{color:var(--azul)}
+.rev-row .rev-num{text-align:center;font-weight:700;color:var(--azul)}
 .rev-del{flex:0 0 34px;height:34px;border-radius:8px;border:1.5px solid #dbe3f0;background:#fff;color:#8b3a3a;font-size:18px;line-height:1;cursor:pointer}
 .rev-del:hover{border-color:#e05252;background:#fff7f7}
 .rev-empty{font-size:12px;color:var(--mut);margin:2px 0 10px}
@@ -114,9 +112,6 @@ body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto
   .rev-row .rev-hist{grid-column:2;grid-row:1}
   .rev-row .rev-del{grid-column:3;grid-row:1}
   .rev-row .rev-data{grid-column:2/4;grid-row:2}
-  .rev-row--fixa .rev-num,.rev-row--fixa .rev-hist{grid-row:auto}
-  .rev-row--fixa .rev-data{grid-column:2;grid-row:1}
-  .rev-row--fixa{padding-bottom:10px}
 }
 
 /* Rodapé do app (apenas unidade Itatiaiuçu) */
@@ -320,20 +315,14 @@ body.previewing .sheet{margin-bottom:10mm}
     <!-- ETAPA 3 -->
     <section class="card" id="cardRevisoes">
       <h2><span class="stepnum">3</span> Histórico de revisões</h2>
-      <p class="sub">A capa do plano traz o histórico de revisões na ordem <b>Rev. · Data · Histórico</b>. A <b>linha 1</b> é sempre a elaboração (Rev. 00). Ao adicionar uma revisão, o app gera a linha seguinte (Rev. 01, 02, 03…) com a data e o motivo informados — e o número da revisão passa a constar no cabeçalho de todas as páginas.</p>
+      <p class="sub">Tabela livre: a capa do plano reproduz <b>exatamente</b> as linhas abaixo, na ordem <b>Rev. · Data · Histórico</b>. Todos os campos são editáveis — inclusive a linha da elaboração (Rev. 00), cuja data e descrição podem ser alteradas. O número da <b>última</b> linha é o que aparece no cabeçalho de todas as páginas.</p>
 
       <div class="rev-head">
-        <span>Rev.</span><span>Data</span><span>Histórico (motivo da revisão)</span><span></span>
-      </div>
-      <div class="rev-row rev-row--fixa">
-        <span class="rev-num">00</span>
-        <span class="rev-data" id="revDataBase">—</span>
-        <span class="rev-hist">Elaboração</span>
-        <span></span>
+        <span>Rev.</span><span>Data</span><span>Histórico (descrição)</span><span></span>
       </div>
       <div id="revList"></div>
-      <p class="rev-empty" id="revEmpty">Nenhuma revisão cadastrada — o documento sairá apenas com a linha da elaboração (Rev. 00).</p>
-      <button class="btn ghost" id="btnAddRev" type="button">+ Adicionar revisão</button>
+      <p class="rev-empty" id="revEmpty">Nenhuma linha no histórico — use o botão abaixo para incluir.</p>
+      <button class="btn ghost" id="btnAddRev" type="button">+ Adicionar linha</button>
 
       <div class="alerts" id="alerts"></div>
       <div class="genrow">
@@ -722,9 +711,9 @@ body.previewing .sheet{margin-bottom:10mm}
     channels: {},
     outro: '',
     pdfName: '',
-    /* Histórico de revisões da capa: [{ num:'01', data:'dd/mm/aaaa', motivo:'' }].
-       A linha 1 (Rev. 00 — elaboração) é fixa e não fica nesta lista. */
-    revisoes: []
+    /* Histórico da capa (tabela livre): [{ num:'00', data:'dd/mm/aaaa', motivo:'' }].
+       Todas as linhas são editáveis — inclusive a da elaboração (Rev. 00). */
+    historico: []
   };
   COMPANY_FIELDS.forEach(function (f) { state.company[f.k] = ''; });
 
@@ -882,69 +871,71 @@ body.previewing .sheet{margin-bottom:10mm}
     save();
   });
 
-  /* ============================== HISTÓRICO DE REVISÕES ============================== */
+  /* ============================== HISTÓRICO DE REVISÕES ==============================
+     Tabela livre: todas as linhas — inclusive a da elaboração (Rev. 00) — são editáveis
+     e a capa reproduz exatamente o que estiver preenchido aqui. */
   function pad2(n) { return ('0' + Number(n || 0)).slice(-2); }
-  /* Só entram no documento as revisões que tenham motivo (histórico) descrito. */
-  function revisoesValidas() {
-    return state.revisoes.filter(function (r) { return String(r.motivo || '').trim(); });
+  /* Ponto de partida da tabela: a linha da elaboração, já pronta para edição. */
+  function historicoPadrao() {
+    return [{ num: '00', data: hojeBR(), motivo: 'Elaboração' }];
   }
-  /* Nº sugerido para a próxima revisão: um a mais que o maior número já cadastrado. */
+  /* Linha em branco (sem número, data e motivo) não vai para o documento. */
+  function historicoValido() {
+    return state.historico.filter(function (r) {
+      return String(r.num || '').trim() || String(r.data || '').trim() || String(r.motivo || '').trim();
+    });
+  }
+  /* Nº sugerido para a próxima linha: um a mais que o maior número já preenchido. */
   function proximoNumRev() {
     var max = 0;
-    state.revisoes.forEach(function (r) {
+    state.historico.forEach(function (r) {
       var n = parseInt(r.num, 10);
       if (!isNaN(n) && n > max) max = n;
     });
     return pad2(max + 1);
   }
-  /* true quando a lista está numerada em sequência (01, 02, 03…) — usado após remover
-     uma linha: assim os números não ficam furados, mas edições manuais são preservadas. */
-  function sequenciaLimpa() {
-    return state.revisoes.every(function (r, k) { return parseInt(r.num, 10) === k + 1; });
-  }
-  /* Revisão vigente (a última do histórico) — vai no cabeçalho das páginas. */
+  /* Revisão vigente (última linha preenchida) — vai no cabeçalho das páginas. */
   function revAtual() {
-    var v = revisoesValidas();
+    var v = historicoValido();
     if (!v.length) return '00';
     var n = String(v[v.length - 1].num || '').trim();
-    return n || pad2(v.length);
+    return n || '00';
   }
 
-  function renderRevisoes() {
+  function renderHistorico() {
     var list = $('#revList');
     list.innerHTML = '';
-    $('#revDataBase').textContent = hojeBR();
-    state.revisoes.forEach(function (r, i) {
+    state.historico.forEach(function (r, i) {
       var row = document.createElement('div');
       row.className = 'rev-row';
       row.dataset.i = i;
       row.innerHTML =
-        '<input class="rev-num" data-c="num" inputmode="numeric" maxlength="2" aria-label="Número da revisão" value="' + esc(r.num) + '">' +
-        '<input class="rev-data" data-c="data" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data da revisão" value="' + esc(r.data) + '">' +
-        '<input class="rev-hist" data-c="motivo" placeholder="Ex.: Revisão geral do Plano e inclusão da Comissão de Apuração" aria-label="Motivo da revisão" value="' + esc(r.motivo) + '">' +
-        '<button class="rev-del" type="button" title="Remover revisão" aria-label="Remover revisão">×</button>';
+        '<input class="rev-num" data-c="num" inputmode="numeric" maxlength="4" aria-label="Número da revisão" placeholder="00" value="' + esc(r.num) + '">' +
+        '<input class="rev-data" data-c="data" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data" value="' + esc(r.data) + '">' +
+        '<input class="rev-hist" data-c="motivo" placeholder="Descrição — ex.: Elaboração, Revisão geral do Plano…" aria-label="Histórico" value="' + esc(r.motivo) + '">' +
+        '<button class="rev-del" type="button" title="Remover linha" aria-label="Remover linha">×</button>';
       list.appendChild(row);
     });
-    $('#revEmpty').hidden = state.revisoes.length > 0;
+    $('#revEmpty').hidden = state.historico.length > 0;
   }
 
   $('#btnAddRev').addEventListener('click', function () {
     var num = proximoNumRev();
-    state.revisoes.push({ num: num, data: hojeBR(), motivo: '' });
-    renderRevisoes();
+    state.historico.push({ num: num, data: hojeBR(), motivo: '' });
+    renderHistorico();
     save();
     var rows = $$('#revList .rev-row');
     var last = rows[rows.length - 1];
     if (last) $('.rev-hist', last).focus();
-    toast('Revisão ' + num + ' adicionada — informe a data e o motivo.');
+    toast('Linha ' + num + ' adicionada — ajuste número, data e descrição.');
   });
 
   $('#revList').addEventListener('input', function (e) {
     var row = e.target.closest('.rev-row');
     if (!row) return;
     var i = Number(row.dataset.i);
-    if (!state.revisoes[i]) return;
-    state.revisoes[i][e.target.dataset.c] = e.target.value;
+    if (!state.historico[i]) return;
+    state.historico[i][e.target.dataset.c] = e.target.value;
     save();
   });
 
@@ -952,16 +943,15 @@ body.previewing .sheet{margin-bottom:10mm}
     var btn = e.target.closest('.rev-del');
     if (!btn) return;
     var i = Number(btn.closest('.rev-row').dataset.i);
-    var limpa = sequenciaLimpa();
-    state.revisoes.splice(i, 1);
-    /* Se a numeração estava em sequência, renumera para não deixar furos (01, 02, 03…). */
-    if (limpa) state.revisoes.forEach(function (r, k) { r.num = pad2(k + 1); });
-    renderRevisoes();
+    state.historico.splice(i, 1);
+    renderHistorico();
     save();
   });
 
-  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName, revisoes: state.revisoes })); }
+  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName, historico: state.historico })); }
   function restore() {
+    /* Sem sessão salva, a tabela começa com a linha da elaboração pronta para edição. */
+    state.historico = historicoPadrao();
     var raw = store(LS_KEY);
     if (!raw) return;
     try {
@@ -977,10 +967,22 @@ body.previewing .sheet{margin-bottom:10mm}
       });
       state.outro = (d.outro && String(d.outro)) || '';
       state.pdfName = (d.pdfName && String(d.pdfName)) || '';
-      state.revisoes = Array.isArray(d.revisoes) ? d.revisoes.map(function (r) {
-        return { num: String((r && r.num) || ''), data: String((r && r.data) || ''), motivo: String((r && r.motivo) || '') };
-      }) : [];
-    } catch (e) {}
+      /* Compatibilidade: 'revisoes' era o nome do campo quando a linha da elaboração
+         (Rev. 00) era fixa e ficava fora da lista — nesse caso ela é reincluída. */
+      var bruto = Array.isArray(d.historico) ? d.historico : null;
+      var legacy = !bruto && Array.isArray(d.revisoes);
+      var linhas = bruto || (legacy ? d.revisoes : null);
+      if (linhas === null) {
+        state.historico = historicoPadrao();
+      } else {
+        state.historico = linhas.map(function (r) {
+          return { num: String((r && r.num) || ''), data: String((r && r.data) || ''), motivo: String((r && r.motivo) || '') };
+        });
+        if (legacy) state.historico.unshift(historicoPadrao()[0]);
+      }
+    } catch (e) {
+      state.historico = historicoPadrao();
+    }
   }
 
   /* ============================== PDF (etapa 1) ============================== */
@@ -1512,19 +1514,20 @@ body.previewing .sheet{margin-bottom:10mm}
         '</div>' +
       '</div>'
     ));
-    /* Histórico de revisões da capa: linha 1 = elaboração (Rev. 00); as demais linhas
-       vêm das revisões cadastradas na etapa 3, na ordem Rev. | Data | Histórico. */
+    /* Histórico da capa: reproduce exatamente as linhas preenchidas na etapa 3,
+       na ordem Rev. | Data | Histórico. Linhas em branco são ignoradas; se não
+       sobrar nenhuma, a tabela sai apenas com o quadro "Elaborado por". */
     var revRows = '';
-    revisoesValidas().forEach(function (r) {
-      var num = String(r.num || '').trim() || '—';
-      var data = String(r.data || '').trim() || hojeBR();
-      revRows += '<tr><td style="text-align:center">' + esc(num) + '</td><td>' + esc(data) + '</td><td>' + esc(String(r.motivo).trim()) + '</td></tr>';
+    historicoValido().forEach(function (r) {
+      revRows += '<tr>' +
+        '<td style="text-align:center">' + esc(String(r.num).trim()) + '</td>' +
+        '<td>' + esc(String(r.data).trim()) + '</td>' +
+        '<td>' + esc(String(r.motivo).trim()) + '</td>' +
+      '</tr>';
     });
     cov.body.appendChild(frag(
       '<table class="dt" style="margin-top:2mm">' +
-        '<tr><th style="width:12%;text-align:center">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' +
-        '<tr><td style="text-align:center">00</td><td>' + hojeBR() + '</td><td>Elaboração</td></tr>' +
-        revRows +
+        (revRows ? '<tr><th style="width:12%;text-align:center">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' + revRows : '') +
         '<tr><th colspan="3">Elaborado por</th></tr>' +
         '<tr><td colspan="3">' + ELAB_SIGN + '</td></tr>' +
       '</table>'
@@ -1680,10 +1683,10 @@ body.previewing .sheet{margin-bottom:10mm}
     CH.forEach(function (c) { state.channels[c.id] = { on: false, v: {} }; });
     state.outro = '';
     state.pdfName = '';
-    state.revisoes = [];
+    state.historico = historicoPadrao();
     renderFields();
     renderChannels();
-    renderRevisoes();
+    renderHistorico();
     $('#outroTxt').value = '';
     $('#fieldsBox').hidden = true;
     $('#fieldsNote').hidden = true;
@@ -1698,7 +1701,7 @@ body.previewing .sheet{margin-bottom:10mm}
   restore();
   renderFields();
   renderChannels();
-  renderRevisoes();
+  renderHistorico();
   $('#outroTxt').value = state.outro;
   if (state.pdfName) setStatus('Sessão anterior: ' + state.pdfName + ' (reanexe o PDF para recarregar os dados)');
   var hasCompany = COMPANY_FIELDS.some(function (f) { return state.company[f.k].trim(); });

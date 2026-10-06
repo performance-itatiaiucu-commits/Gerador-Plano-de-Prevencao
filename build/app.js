@@ -72,9 +72,9 @@
     channels: {},
     outro: '',
     pdfName: '',
-    /* Histórico de revisões da capa: [{ num:'01', data:'dd/mm/aaaa', motivo:'' }].
-       A linha 1 (Rev. 00 — elaboração) é fixa e não fica nesta lista. */
-    revisoes: []
+    /* Histórico da capa (tabela livre): [{ num:'00', data:'dd/mm/aaaa', motivo:'' }].
+       Todas as linhas são editáveis — inclusive a da elaboração (Rev. 00). */
+    historico: []
   };
   COMPANY_FIELDS.forEach(function (f) { state.company[f.k] = ''; });
 
@@ -232,69 +232,71 @@
     save();
   });
 
-  /* ============================== HISTÓRICO DE REVISÕES ============================== */
+  /* ============================== HISTÓRICO DE REVISÕES ==============================
+     Tabela livre: todas as linhas — inclusive a da elaboração (Rev. 00) — são editáveis
+     e a capa reproduz exatamente o que estiver preenchido aqui. */
   function pad2(n) { return ('0' + Number(n || 0)).slice(-2); }
-  /* Só entram no documento as revisões que tenham motivo (histórico) descrito. */
-  function revisoesValidas() {
-    return state.revisoes.filter(function (r) { return String(r.motivo || '').trim(); });
+  /* Ponto de partida da tabela: a linha da elaboração, já pronta para edição. */
+  function historicoPadrao() {
+    return [{ num: '00', data: hojeBR(), motivo: 'Elaboração' }];
   }
-  /* Nº sugerido para a próxima revisão: um a mais que o maior número já cadastrado. */
+  /* Linha em branco (sem número, data e motivo) não vai para o documento. */
+  function historicoValido() {
+    return state.historico.filter(function (r) {
+      return String(r.num || '').trim() || String(r.data || '').trim() || String(r.motivo || '').trim();
+    });
+  }
+  /* Nº sugerido para a próxima linha: um a mais que o maior número já preenchido. */
   function proximoNumRev() {
     var max = 0;
-    state.revisoes.forEach(function (r) {
+    state.historico.forEach(function (r) {
       var n = parseInt(r.num, 10);
       if (!isNaN(n) && n > max) max = n;
     });
     return pad2(max + 1);
   }
-  /* true quando a lista está numerada em sequência (01, 02, 03…) — usado após remover
-     uma linha: assim os números não ficam furados, mas edições manuais são preservadas. */
-  function sequenciaLimpa() {
-    return state.revisoes.every(function (r, k) { return parseInt(r.num, 10) === k + 1; });
-  }
-  /* Revisão vigente (a última do histórico) — vai no cabeçalho das páginas. */
+  /* Revisão vigente (última linha preenchida) — vai no cabeçalho das páginas. */
   function revAtual() {
-    var v = revisoesValidas();
+    var v = historicoValido();
     if (!v.length) return '00';
     var n = String(v[v.length - 1].num || '').trim();
-    return n || pad2(v.length);
+    return n || '00';
   }
 
-  function renderRevisoes() {
+  function renderHistorico() {
     var list = $('#revList');
     list.innerHTML = '';
-    $('#revDataBase').textContent = hojeBR();
-    state.revisoes.forEach(function (r, i) {
+    state.historico.forEach(function (r, i) {
       var row = document.createElement('div');
       row.className = 'rev-row';
       row.dataset.i = i;
       row.innerHTML =
-        '<input class="rev-num" data-c="num" inputmode="numeric" maxlength="2" aria-label="Número da revisão" value="' + esc(r.num) + '">' +
-        '<input class="rev-data" data-c="data" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data da revisão" value="' + esc(r.data) + '">' +
-        '<input class="rev-hist" data-c="motivo" placeholder="Ex.: Revisão geral do Plano e inclusão da Comissão de Apuração" aria-label="Motivo da revisão" value="' + esc(r.motivo) + '">' +
-        '<button class="rev-del" type="button" title="Remover revisão" aria-label="Remover revisão">×</button>';
+        '<input class="rev-num" data-c="num" inputmode="numeric" maxlength="4" aria-label="Número da revisão" placeholder="00" value="' + esc(r.num) + '">' +
+        '<input class="rev-data" data-c="data" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data" value="' + esc(r.data) + '">' +
+        '<input class="rev-hist" data-c="motivo" placeholder="Descrição — ex.: Elaboração, Revisão geral do Plano…" aria-label="Histórico" value="' + esc(r.motivo) + '">' +
+        '<button class="rev-del" type="button" title="Remover linha" aria-label="Remover linha">×</button>';
       list.appendChild(row);
     });
-    $('#revEmpty').hidden = state.revisoes.length > 0;
+    $('#revEmpty').hidden = state.historico.length > 0;
   }
 
   $('#btnAddRev').addEventListener('click', function () {
     var num = proximoNumRev();
-    state.revisoes.push({ num: num, data: hojeBR(), motivo: '' });
-    renderRevisoes();
+    state.historico.push({ num: num, data: hojeBR(), motivo: '' });
+    renderHistorico();
     save();
     var rows = $$('#revList .rev-row');
     var last = rows[rows.length - 1];
     if (last) $('.rev-hist', last).focus();
-    toast('Revisão ' + num + ' adicionada — informe a data e o motivo.');
+    toast('Linha ' + num + ' adicionada — ajuste número, data e descrição.');
   });
 
   $('#revList').addEventListener('input', function (e) {
     var row = e.target.closest('.rev-row');
     if (!row) return;
     var i = Number(row.dataset.i);
-    if (!state.revisoes[i]) return;
-    state.revisoes[i][e.target.dataset.c] = e.target.value;
+    if (!state.historico[i]) return;
+    state.historico[i][e.target.dataset.c] = e.target.value;
     save();
   });
 
@@ -302,16 +304,15 @@
     var btn = e.target.closest('.rev-del');
     if (!btn) return;
     var i = Number(btn.closest('.rev-row').dataset.i);
-    var limpa = sequenciaLimpa();
-    state.revisoes.splice(i, 1);
-    /* Se a numeração estava em sequência, renumera para não deixar furos (01, 02, 03…). */
-    if (limpa) state.revisoes.forEach(function (r, k) { r.num = pad2(k + 1); });
-    renderRevisoes();
+    state.historico.splice(i, 1);
+    renderHistorico();
     save();
   });
 
-  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName, revisoes: state.revisoes })); }
+  function save() { store(LS_KEY, JSON.stringify({ company: state.company, channels: state.channels, outro: state.outro, pdfName: state.pdfName, historico: state.historico })); }
   function restore() {
+    /* Sem sessão salva, a tabela começa com a linha da elaboração pronta para edição. */
+    state.historico = historicoPadrao();
     var raw = store(LS_KEY);
     if (!raw) return;
     try {
@@ -327,10 +328,22 @@
       });
       state.outro = (d.outro && String(d.outro)) || '';
       state.pdfName = (d.pdfName && String(d.pdfName)) || '';
-      state.revisoes = Array.isArray(d.revisoes) ? d.revisoes.map(function (r) {
-        return { num: String((r && r.num) || ''), data: String((r && r.data) || ''), motivo: String((r && r.motivo) || '') };
-      }) : [];
-    } catch (e) {}
+      /* Compatibilidade: 'revisoes' era o nome do campo quando a linha da elaboração
+         (Rev. 00) era fixa e ficava fora da lista — nesse caso ela é reincluída. */
+      var bruto = Array.isArray(d.historico) ? d.historico : null;
+      var legacy = !bruto && Array.isArray(d.revisoes);
+      var linhas = bruto || (legacy ? d.revisoes : null);
+      if (linhas === null) {
+        state.historico = historicoPadrao();
+      } else {
+        state.historico = linhas.map(function (r) {
+          return { num: String((r && r.num) || ''), data: String((r && r.data) || ''), motivo: String((r && r.motivo) || '') };
+        });
+        if (legacy) state.historico.unshift(historicoPadrao()[0]);
+      }
+    } catch (e) {
+      state.historico = historicoPadrao();
+    }
   }
 
   /* ============================== PDF (etapa 1) ============================== */
@@ -862,19 +875,20 @@
         '</div>' +
       '</div>'
     ));
-    /* Histórico de revisões da capa: linha 1 = elaboração (Rev. 00); as demais linhas
-       vêm das revisões cadastradas na etapa 3, na ordem Rev. | Data | Histórico. */
+    /* Histórico da capa: reproduce exatamente as linhas preenchidas na etapa 3,
+       na ordem Rev. | Data | Histórico. Linhas em branco são ignoradas; se não
+       sobrar nenhuma, a tabela sai apenas com o quadro "Elaborado por". */
     var revRows = '';
-    revisoesValidas().forEach(function (r) {
-      var num = String(r.num || '').trim() || '—';
-      var data = String(r.data || '').trim() || hojeBR();
-      revRows += '<tr><td style="text-align:center">' + esc(num) + '</td><td>' + esc(data) + '</td><td>' + esc(String(r.motivo).trim()) + '</td></tr>';
+    historicoValido().forEach(function (r) {
+      revRows += '<tr>' +
+        '<td style="text-align:center">' + esc(String(r.num).trim()) + '</td>' +
+        '<td>' + esc(String(r.data).trim()) + '</td>' +
+        '<td>' + esc(String(r.motivo).trim()) + '</td>' +
+      '</tr>';
     });
     cov.body.appendChild(frag(
       '<table class="dt" style="margin-top:2mm">' +
-        '<tr><th style="width:12%;text-align:center">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' +
-        '<tr><td style="text-align:center">00</td><td>' + hojeBR() + '</td><td>Elaboração</td></tr>' +
-        revRows +
+        (revRows ? '<tr><th style="width:12%;text-align:center">Rev.</th><th style="width:20%">Data</th><th>Histórico</th></tr>' + revRows : '') +
         '<tr><th colspan="3">Elaborado por</th></tr>' +
         '<tr><td colspan="3">' + ELAB_SIGN + '</td></tr>' +
       '</table>'
@@ -1030,10 +1044,10 @@
     CH.forEach(function (c) { state.channels[c.id] = { on: false, v: {} }; });
     state.outro = '';
     state.pdfName = '';
-    state.revisoes = [];
+    state.historico = historicoPadrao();
     renderFields();
     renderChannels();
-    renderRevisoes();
+    renderHistorico();
     $('#outroTxt').value = '';
     $('#fieldsBox').hidden = true;
     $('#fieldsNote').hidden = true;
@@ -1048,7 +1062,7 @@
   restore();
   renderFields();
   renderChannels();
-  renderRevisoes();
+  renderHistorico();
   $('#outroTxt').value = state.outro;
   if (state.pdfName) setStatus('Sessão anterior: ' + state.pdfName + ' (reanexe o PDF para recarregar os dados)');
   var hasCompany = COMPANY_FIELDS.some(function (f) { return state.company[f.k].trim(); });

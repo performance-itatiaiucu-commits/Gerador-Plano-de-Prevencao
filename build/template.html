@@ -100,9 +100,7 @@ body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto
 .rev-row{margin-bottom:8px}
 .rev-row input{width:100%;border:1.5px solid #c9d4e6;border-radius:7px;padding:8px 10px;font:inherit;font-size:13.5px;color:var(--azul);background:#fff}
 .rev-row input:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(4,204,255,.18)}
-.rev-row .rev-num{text-align:center;font-weight:700}
-.rev-row--fixa{background:#f4f8ff;border:1.5px dashed #cfd9e8;border-radius:9px;padding:8px 10px;font-size:13px;color:#44536e}
-.rev-row--fixa .rev-num{color:var(--azul)}
+.rev-row .rev-num{text-align:center;font-weight:700;color:var(--azul)}
 .rev-del{flex:0 0 34px;height:34px;border-radius:8px;border:1.5px solid #dbe3f0;background:#fff;color:#8b3a3a;font-size:18px;line-height:1;cursor:pointer}
 .rev-del:hover{border-color:#e05252;background:#fff7f7}
 .rev-empty{font-size:12px;color:var(--mut);margin:2px 0 10px}
@@ -114,9 +112,6 @@ body{margin:0;background:#e7edf5;color:var(--azul);font-family:"Segoe UI",Roboto
   .rev-row .rev-hist{grid-column:2;grid-row:1}
   .rev-row .rev-del{grid-column:3;grid-row:1}
   .rev-row .rev-data{grid-column:2/4;grid-row:2}
-  .rev-row--fixa .rev-num,.rev-row--fixa .rev-hist{grid-row:auto}
-  .rev-row--fixa .rev-data{grid-column:2;grid-row:1}
-  .rev-row--fixa{padding-bottom:10px}
 }
 
 /* Rodapé do app (apenas unidade Itatiaiuçu) */
@@ -320,20 +315,14 @@ body.previewing .sheet{margin-bottom:10mm}
     <!-- ETAPA 3 -->
     <section class="card" id="cardRevisoes">
       <h2><span class="stepnum">3</span> Histórico de revisões</h2>
-      <p class="sub">A capa do plano traz o histórico de revisões na ordem <b>Rev. · Data · Histórico</b>. A <b>linha 1</b> é sempre a elaboração (Rev. 00). Ao adicionar uma revisão, o app gera a linha seguinte (Rev. 01, 02, 03…) com a data e o motivo informados — e o número da revisão passa a constar no cabeçalho de todas as páginas.</p>
+      <p class="sub">Tabela livre: a capa do plano reproduz <b>exatamente</b> as linhas abaixo, na ordem <b>Rev. · Data · Histórico</b>. Todos os campos são editáveis — inclusive a linha da elaboração (Rev. 00), cuja data e descrição podem ser alteradas. O número da <b>última</b> linha é o que aparece no cabeçalho de todas as páginas.</p>
 
       <div class="rev-head">
-        <span>Rev.</span><span>Data</span><span>Histórico (motivo da revisão)</span><span></span>
-      </div>
-      <div class="rev-row rev-row--fixa">
-        <span class="rev-num">00</span>
-        <span class="rev-data" id="revDataBase">—</span>
-        <span class="rev-hist">Elaboração</span>
-        <span></span>
+        <span>Rev.</span><span>Data</span><span>Histórico (descrição)</span><span></span>
       </div>
       <div id="revList"></div>
-      <p class="rev-empty" id="revEmpty">Nenhuma revisão cadastrada — o documento sairá apenas com a linha da elaboração (Rev. 00).</p>
-      <button class="btn ghost" id="btnAddRev" type="button">+ Adicionar revisão</button>
+      <p class="rev-empty" id="revEmpty">Nenhuma linha no histórico — use o botão abaixo para incluir.</p>
+      <button class="btn ghost" id="btnAddRev" type="button">+ Adicionar linha</button>
 
       <div class="alerts" id="alerts"></div>
       <div class="genrow">
