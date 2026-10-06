@@ -49,7 +49,8 @@
     { k: 'razaoSocial', l: 'Razão Social', req: true },
     { k: 'nomeFantasia', l: 'Nome Fantasia' },
     { k: 'ramoAtividade', l: 'Ramo de Atividade' },
-    { k: 'cnpj', l: 'CNPJ' },
+    { k: 'inscricao', l: 'CNPJ / CPF / CAEPF' },
+    { k: 'tipoInscricao', l: 'Tipo de inscrição', type: 'select', options: ['CNPJ', 'CPF', 'CAEPF'] },
     { k: 'endereco', l: 'Endereço' },
     { k: 'bairro', l: 'Bairro' },
     { k: 'cep', l: 'CEP' },
@@ -77,6 +78,7 @@
     historico: []
   };
   COMPANY_FIELDS.forEach(function (f) { state.company[f.k] = ''; });
+  state.company.tipoInscricao = 'CNPJ'; /* padrão: caso mais comum */
 
   var ICON = {
     mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>',
@@ -147,28 +149,92 @@
   CH.forEach(function (c) { state.channels[c.id] = { on: false, v: {} }; });
 
   /* ============================== RENDER DO FORMULÁRIO ============================== */
+  /* Dica sob o campo de inscrição: mostra o tipo e a validade do dígito
+     verificador. Não bloqueia a geração — apenas orienta a conferência. */
+  function refreshInscricaoHint() {
+    var hint = $('#inscricaoHint');
+    if (!hint) return;
+    var v = String(state.company.inscricao || '').trim();
+    var t = String(state.company.tipoInscricao || '').toUpperCase();
+    if (!v) { hint.hidden = true; hint.textContent = ''; return; }
+    var det = null;
+    try { det = window.Extract.detectarTipoInscricao(v, ''); } catch (e) { det = null; }
+    var show = /^(CNPJ|CPF|CAEPF)$/.test(t) ? t : (det && det.tipo) || '';
+    var valido;
+    try {
+      if (show === 'CPF') valido = window.Extract.validarCPF(v);
+      else if (show === 'CNPJ') valido = window.Extract.validarCNPJ(v);
+      else if (show === 'CAEPF') valido = window.Extract.validarCAEPF(v);
+      else valido = false;
+    } catch (e2) { valido = false; }
+    hint.hidden = false;
+    if (!show) {
+      hint.textContent = 'Tipo não identificado — confira o número.';
+      hint.className = 'fld-hint warn';
+    } else if (valido) {
+      hint.textContent = show + ' válido.';
+      hint.className = 'fld-hint ok';
+    } else {
+      hint.textContent = show + ': dígito verificador inválido — confira o número.';
+      hint.className = 'fld-hint warn';
+    }
+    /* Aviso extra quando o tipo manual diverge da máscara (ex.: máscara de CNPJ
+       com tipo CPF selecionado). */
+    if (show && det && det.tipo && show !== det.tipo && /[.\/\-]/.test(v)) {
+      hint.textContent += ' (O número parece ' + det.tipo + '.)';
+    }
+  }
+
   function renderFields() {
     var box = $('#fieldsBox');
     box.innerHTML = '';
     COMPANY_FIELDS.forEach(function (f) {
       var wrap = document.createElement('label');
       wrap.className = 'fld' + (f.wide ? ' wide' : '');
-      wrap.innerHTML = '<span>' + esc(f.l) + (f.req ? ' *' : '') + '</span>' +
-        '<input type="' + (f.type || 'text') + '" data-k="' + f.k + '" value="' + esc(state.company[f.k]) + '">';
+      if (f.type === 'select') {
+        wrap.innerHTML = '<span>' + esc(f.l) + '</span>' +
+          '<select data-k="' + f.k + '">' +
+          f.options.map(function (o) {
+            return '<option value="' + o + '"' + (state.company[f.k] === o ? ' selected' : '') + '>' + o + '</option>';
+          }).join('') + '</select>';
+      } else {
+        wrap.innerHTML = '<span>' + esc(f.l) + (f.req ? ' *' : '') + '</span>' +
+          '<input type="' + (f.type || 'text') + '" data-k="' + f.k + '" value="' + esc(state.company[f.k]) + '"' +
+          (f.k === 'inscricao' ? ' inputmode="numeric" placeholder="00.000.000/0000-00"' : '') + '>' +
+          (f.k === 'inscricao' ? '<small class="fld-hint" id="inscricaoHint" hidden></small>' : '');
+      }
       box.appendChild(wrap);
     });
-    $$('input[data-k]', box).forEach(function (inp) {
-      inp.addEventListener('input', function () {
-        state.company[inp.dataset.k] = inp.value;
-        inp.classList.remove('err');
-        save();
-      });
+    $$('input[data-k],select[data-k]', box).forEach(function (inp) {
+      inp.addEventListener('input', onFieldInput);
+      inp.addEventListener('change', onFieldInput);
     });
+    refreshInscricaoHint();
+  }
+  function onFieldInput() {
+    var k = this.dataset.k;
+    state.company[k] = this.value;
+    if (this.classList) this.classList.remove('err');
+    /* Digitar a inscrição detecta o tipo automaticamente; a seleção manual do
+       tipo é respeitada até a próxima edição do número. */
+    if (k === 'inscricao') {
+      try {
+        var det = window.Extract.detectarTipoInscricao(this.value, '');
+        if (det && det.tipo) {
+          state.company.tipoInscricao = det.tipo;
+          var sel = $('#fieldsBox select[data-k="tipoInscricao"]');
+          if (sel) sel.value = det.tipo;
+        }
+      } catch (e) {}
+    }
+    refreshInscricaoHint();
+    save();
   }
   function fillFields() {
-    $$('#fieldsBox input[data-k]').forEach(function (inp) {
+    $$('#fieldsBox input[data-k],#fieldsBox select[data-k]').forEach(function (inp) {
       inp.value = state.company[inp.dataset.k] || '';
     });
+    refreshInscricaoHint();
   }
 
   function renderChannels() {
@@ -320,6 +386,15 @@
       COMPANY_FIELDS.forEach(function (f) {
         if (d.company && typeof d.company[f.k] === 'string') state.company[f.k] = d.company[f.k];
       });
+      /* Migração: 'cnpj' (versão anterior) vira 'inscricao' com tipo detectado. */
+      if (!state.company.inscricao && d.company && typeof d.company.cnpj === 'string' && d.company.cnpj.trim()) {
+        state.company.inscricao = d.company.cnpj.trim();
+      }
+      if (!/^(CNPJ|CPF|CAEPF)$/.test(state.company.tipoInscricao || '')) {
+        var det0 = null;
+        try { det0 = window.Extract.detectarTipoInscricao(state.company.inscricao || '', ''); } catch (e0) { det0 = null; }
+        state.company.tipoInscricao = (det0 && det0.tipo) || 'CNPJ';
+      }
       CH.forEach(function (c) {
         if (d.channels && d.channels[c.id]) {
           state.channels[c.id].on = !!d.channels[c.id].on;
@@ -391,6 +466,9 @@
         COMPANY_FIELDS.forEach(function (f) {
           if (data[f.k]) { state.company[f.k] = data[f.k]; found++; }
         });
+        if (!/^(CNPJ|CPF|CAEPF)$/.test(state.company.tipoInscricao || '')) {
+          state.company.tipoInscricao = data.tipoInscricao || 'CNPJ';
+        }
         fillFields();
         revealFields();
         state.pdfName = file.name;
@@ -399,7 +477,8 @@
         var ok = $('#pdfOk');
         ok.hidden = false;
         if (data.razaoSocial) {
-          ok.textContent = '✔ Dados identificados na página ' + data.foundPage + ' do PDF (' + found + ' campos). Confira abaixo antes de gerar.';
+          var tipoMsg = data.inscricao && data.tipoInscricao ? ' Inscrição identificada como ' + data.tipoInscricao + '.' : '';
+          ok.textContent = '✔ Dados identificados na página ' + data.foundPage + ' do PDF (' + found + ' campos).' + tipoMsg + ' Confira abaixo antes de gerar.';
         } else {
           ok.textContent = '✔ PDF lido (' + doc.numPages + ' páginas), mas os campos de identificação estão vazios ou em branco no arquivo. Preencha os dados manualmente abaixo.';
         }
@@ -442,8 +521,28 @@
   /* ============================== CONTEÚDO DO DOCUMENTO ============================== */
   function X(v) { var t = String(v || '').trim(); return t ? esc(t) : '—'; }
 
+  /* Inscrição no documento: rótulo conforme o tipo (CNPJ/CPF/CAEPF), número com
+     máscara padronizada e tolerância a sessões antigas (campo 'cnpj'). */
+  function inscricaoDoc(E) {
+    var raw = String(E.inscricao || E.cnpj || '').trim();
+    var tipo = String(E.tipoInscricao || '').trim().toUpperCase();
+    if (['CNPJ', 'CPF', 'CAEPF'].indexOf(tipo) < 0) {
+      try {
+        var det = window.Extract.detectarTipoInscricao(raw, '');
+        if (det && det.tipo) tipo = det.tipo;
+      } catch (e) {}
+      if (['CNPJ', 'CPF', 'CAEPF'].indexOf(tipo) < 0) tipo = 'CNPJ';
+    }
+    var fmt = raw;
+    try {
+      if (raw && window.Extract.formatarInscricao) fmt = window.Extract.formatarInscricao(raw, tipo);
+    } catch (e2) {}
+    return { tipo: tipo, valor: fmt || raw };
+  }
+
   function buildSections(E, chanList, outroTxt) {
     var EMP = esc(E.razaoSocial.trim() || 'NOME DA EMPRESA');
+    var INS = inscricaoDoc(E);
     var hoje = hojeBR();
     var S = [];
 
@@ -455,7 +554,7 @@
         '<tr><td class="lab">Razão Social</td><td>' + X(E.razaoSocial) + '</td></tr>' +
         '<tr><td class="lab">Nome Fantasia</td><td>' + X(E.nomeFantasia) + '</td></tr>' +
         '<tr><td class="lab">Ramo de Atividade</td><td>' + X(E.ramoAtividade) + '</td></tr>' +
-        '<tr><td class="lab">CNPJ</td><td>' + X(E.cnpj) + '</td></tr>' +
+        '<tr><td class="lab">' + esc(INS.tipo) + '</td><td>' + X(INS.valor) + '</td></tr>' +
         '<tr><td class="lab">Endereço</td><td>' + X(E.endereco) + '</td></tr>' +
         '<tr><td class="lab">Bairro</td><td>' + X(E.bairro) + '</td></tr>' +
         '<tr><td class="lab">CEP</td><td>' + X(E.cep) + '</td></tr>' +
@@ -758,7 +857,7 @@
       '<p class="tbl-title">Lista de presença para divulgação</p>' +
       '<table class="dt dt--form">' +
         '<tr><td class="lab">Razão social</td><td colspan="3">' + X(E.razaoSocial) + '</td></tr>' +
-        '<tr><td class="lab">CNPJ</td><td colspan="3">' + X(E.cnpj) + '</td></tr>' +
+        '<tr><td class="lab">' + esc(INS.tipo) + '</td><td colspan="3">' + X(INS.valor) + '</td></tr>' +
         '<tr><td class="lab">Divulgação</td><td colspan="3">Divulgação do Plano de Prevenção e Enfrentamento ao Assédio Moral e Sexual</td></tr>' +
         '<tr><td class="lab">Responsável pela divulgação</td><td colspan="3" class="write"></td></tr>' +
         '<tr><td class="lab">Data</td><td class="write"></td><td class="void" colspan="2"></td></tr>' +
@@ -860,7 +959,8 @@
 
     /* ---- Página 1: capa ---- */
     var cov = mkSheet('cover');
-    var cnpjLine = [E.cnpj.trim(), [E.cidade.trim(), E.estado.trim()].filter(Boolean).join(' / ')]
+    var INS0 = inscricaoDoc(E);
+    var cnpjLine = [INS0.valor, [E.cidade.trim(), E.estado.trim()].filter(Boolean).join(' / ')]
       .filter(Boolean).join(' · ');
     cov.body.appendChild(frag(
       '<div class="cover-hero">' +
@@ -1041,6 +1141,7 @@
     if (!window.confirm('Limpar todos os dados preenchidos?')) return;
     storeDel(LS_KEY);
     COMPANY_FIELDS.forEach(function (f) { state.company[f.k] = ''; });
+    state.company.tipoInscricao = 'CNPJ';
     CH.forEach(function (c) { state.channels[c.id] = { on: false, v: {} }; });
     state.outro = '';
     state.pdfName = '';
@@ -1065,6 +1166,6 @@
   renderHistorico();
   $('#outroTxt').value = state.outro;
   if (state.pdfName) setStatus('Sessão anterior: ' + state.pdfName + ' (reanexe o PDF para recarregar os dados)');
-  var hasCompany = COMPANY_FIELDS.some(function (f) { return state.company[f.k].trim(); });
+  var hasCompany = COMPANY_FIELDS.some(function (f) { return f.k !== 'tipoInscricao' && state.company[f.k].trim(); });
   if (hasCompany || state.pdfName) revealFields();
 })();
