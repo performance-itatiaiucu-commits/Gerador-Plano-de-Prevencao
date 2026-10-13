@@ -30,7 +30,9 @@ emite o Plano de Prevenção e Enfrentamento ao Assédio pronto para impressão/
 4. **Etapa 3 — Histórico de revisões:** tabela livre, com todas as linhas editáveis (número,
    data e descrição) — inclusive a linha da elaboração (Rev. 00). A capa reproduz exatamente o
    que estiver na tabela, na ordem **Rev. · Data · Histórico**; linhas em branco são ignoradas e
-   o número da última linha é o que aparece no cabeçalho de todas as páginas.
+   o número da última linha é o que aparece no cabeçalho de todas as páginas. A data da linha de
+   elaboração é a que sai, por extenso, no campo de assinatura (seção 18) — se essa linha for
+   removida ou a data estiver inválida, a assinatura volta a usar a data do dia da geração.
 5. Clique em **Gerar plano (PDF)**, confira a pré-visualização e imprima/salve como PDF.
 
 ## Estrutura do repositório
