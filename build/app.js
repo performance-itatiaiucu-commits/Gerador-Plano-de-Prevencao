@@ -328,6 +328,53 @@
     var n = String(v[v.length - 1].num || '').trim();
     return n || '00';
   }
+  /* Data da elaboração: a linha "Elaboração" (Rev. 00) da tabela da etapa 3.
+     É essa data configurada — e não o dia em que o documento é gerado — que
+     aparece, por extenso, no campo de assinatura (seção 18). */
+  function semAcento(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  /* Aceita dd/mm/aaaa (também d/m/aa, dd-mm-aaaa, dd.mm.aaaa e aaaa-mm-dd) e
+     rejeita datas inexistentes (ex.: 31/02/2026). Retorna { dia, mes, ano }. */
+  function parseDataBR(s) {
+    var t = String(s || '').trim();
+    var m = t.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/);
+    var dia, mes, ano;
+    if (m) { dia = Number(m[1]); mes = Number(m[2]); ano = Number(m[3]); }
+    else {
+      m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (!m) return null;
+      ano = Number(m[1]); mes = Number(m[2]); dia = Number(m[3]);
+    }
+    if (ano < 100) ano += 2000;
+    if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
+    var d = new Date(ano, mes - 1, dia);
+    if (d.getFullYear() !== ano || d.getMonth() !== mes - 1 || d.getDate() !== dia) return null;
+    return { dia: dia, mes: mes, ano: ano };
+  }
+  /* Linha da elaboração: primeiro a que tiver "Elaboração" na descrição; na
+     falta dela, a Rev. 00. Se nenhuma existir, não há data configurada. */
+  function linhaElaboracao() {
+    var v = historicoValido();
+    var i, n;
+    for (i = 0; i < v.length; i++) {
+      if (semAcento(v[i].motivo).indexOf('elabor') >= 0) return v[i];
+    }
+    for (i = 0; i < v.length; i++) {
+      n = String(v[i].num || '').trim();
+      if (/^\d+$/.test(n) && parseInt(n, 10) === 0) return v[i];
+    }
+    return null;
+  }
+  /* Data do campo de assinatura (seção 18), por extenso. Sem linha de
+     elaboração ou com data inválida/em branco, mantém o comportamento
+     anterior: a data de hoje. */
+  function dataAssinaturaExtenso() {
+    var linha = linhaElaboracao();
+    var p = linha ? parseDataBR(linha.data) : null;
+    if (!p) return hojeExtenso();
+    return p.dia + ' de ' + MESES[p.mes - 1] + ' de ' + p.ano;
+  }
 
   function renderHistorico() {
     var list = $('#revList');
@@ -883,13 +930,16 @@
     ]});
 
     /* 18 — DISPOSIÇÕES FINAIS */
+    /* A data do campo de assinatura segue a data de elaboração configurada
+       na etapa 3 (linha "Elaboração"/Rev. 00), por extenso — ver
+       dataAssinaturaExtenso(). */
     var localData = [E.cidade.trim(), E.estado.trim()].filter(Boolean).map(esc).join(', ') || 'Itatiaiuçu';
     S.push({ no: 18, blocks: [
       '<section class="blk"><h2 class="sec-t">18. Disposições finais</h2>' +
       '<p class="dp">Este Plano de prevenção e enfrentamento ao assédio moral e sexual entra em vigor na data de sua aprovação e deverá ser amplamente divulgado a todos os colaboradores. O descumprimento das diretrizes aqui estabelecidas será tratado com seriedade, sempre com foco na prevenção, na proteção das pessoas e na manutenção de um ambiente de trabalho saudável.</p>' +
       '<p class="dp">A <b>' + EMP + '</b> reafirma seu compromisso com a dignidade, o respeito e a integridade no ambiente de trabalho.</p>' +
       '<p class="dp">Este Plano de prevenção e enfrentamento ao assédio moral e sexual foi elaborado e aprovado por:</p>' +
-      '<p class="dp" style="margin-top:8mm">' + localData + ', ' + hojeExtenso() + '.</p>' +
+      '<p class="dp" style="margin-top:8mm">' + localData + ', ' + dataAssinaturaExtenso() + '.</p>' +
       '<div class="signs">' +
         '<div class="sign"><div class="sline">Elaboração</div>' + ELAB_SIGN + '</div>' +
         '<div class="sign"><div class="sline">Aprovado</div>Responsável pela empresa ou preposto<br><b>' + EMP + '</b><br>Responsável por estabelecer, implementar e assegurar o cumprimento deste plano.</div>' +
